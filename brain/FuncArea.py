@@ -3,17 +3,19 @@
 @author:893802998@qq.com
 '''
 
-from brain.neuron import *
+from neuron import *
+from BrainLayer import BrainLayer
+from brain import brain
 
 
 #huidu 255 zhuanhuawei kongjian weidu 0-255
 class FCompare2D:
     def __init__(self):
-        self.la=brain.BrainLayer(512,512)
-        self.lb=brain.BrainLayer(512,512)
+        self.la=BrainLayer(16,16)
+        self.lb=BrainLayer(16,16)
         cmat=[[1,1,1],[1,1,1],[1,1,1]]
-        brain.convolution(self.la,self.lb,cmat)
-        self.likeresult=self.lb.getMat
+        self.la.convolutionfun(self.lb,cmat,axon.actvor)
+        self.likeresult=self.lb.getAxonMat
 
         return
 

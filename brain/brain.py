@@ -3,6 +3,7 @@ import neuron
 
 class brain:
     def __init__(self):
+        self.neurons=[]# brains
         self.knowledges = []
 
     def __init__(self,layers=0,rows=0,cols=0):

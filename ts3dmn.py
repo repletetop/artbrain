@@ -1,4 +1,4 @@
-#coding=utf-8
+#-*-coding:utf-8-*-
 import numpy as np
 import sys
 from matplotlib import pyplot as plt

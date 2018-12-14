@@ -17,6 +17,7 @@ from neuron import *
 '''
 COLS=28
 ROWS=28
+NEURONSCOUNT = ROWS*COLS
 
 import matplotlib.pyplot as plt
 def pltshow(img):
@@ -28,40 +29,49 @@ class opticnerve:
     def __init__(self):
         self.neurons=np.array([[neuron() for ii in range(COLS)]
                   for jj in range(ROWS)])# brains
-        self.pallium=[] # 促发记忆主要由大脑皮层控制
-        self.knowledges=[]
-        self.threshold = 1
+        #self.pallium=[] # 促发记忆主要由大脑皮层控制
+        self.knowledges={}
+
 
     def train(self,img,label):
         pass
 
     def remember(self,img,label):
-        idx,vmax=self.look(img)
-        #print(vmax)
-        if(vmax/(ROWS*COLS)>=self.threshold):
-            if (self.knowledges[idx] == label):
-                #print(label,"Already in mermory!",vmax,vmax/786)
-                #n=self.pallium[idx]
+        lb=self.look(img)#found mutipy?
+        if(len(lb)>0):
+            if ( lb[0]==label):
                 return
             else:
-                print("New", label, self.knowledges[idx],vmax,vmax/786)
-                pltshow(img)
-                n = neuron()
-                self.pallium.append(n)
-                self.knowledges.append(label)
+                #print(lb)
+                pass
+
+        if(self.knowledges.__contains__(label)):
+                #print("Already in,create dendritic only", label)
+                #pltshow(img)
+                n = self.knowledges[label]
+                d = dendritic()
+                d.connectto(n)
+                #if label already in memory?
+                #not create n ,just create a dendritic ok
         else:
             n = neuron()
-            self.pallium.append(n)
-            self.knowledges.append(label)
+            d=dendritic()
+            d.connectto(n)
+            self.knowledges[label]=n
 
         r,c=img.shape
         for i in range(r):
             for j in range(c):
                 if(img[i][j]!=0):
-                    n.connectfrom(self.neurons[i,j],1)
+                    d.connectfrom(self.neurons[i,j].axon,1)
                 else:
-                    n.connectfrom(self.neurons[i, j], 0)
+                    d.connectfrom(self.neurons[i, j].axon, 0)
 
+    def reset(self):
+        for k in self.knowledges:
+            self.knowledges[k].value=0
+            for d in self.knowledges[k].dendritics:
+                d.value=0
 
     def center(self,mn):
         left = 0;
@@ -89,23 +99,23 @@ class opticnerve:
     def look(self,img):
         #img=self.center(img)
         #pltshow(img)
-        for n in self.pallium:
-            n.value=0
+        self.reset()
         r,c=img.shape
         for i in range(r):
             for j in range(c):
                 self.neurons[i,j].value = img[i,j]
                 self.neurons[i, j].conduct()
-        idx=-1;vmax=0
-        for i in range(len(self.pallium)):
-            #print(self.pallium[i].value)
-            if(self.pallium[i].value>vmax):
-                idx=i;vmax=self.pallium[i].value
-        return idx,vmax
+        idxs=[]
+        for k in self.knowledges:
+            #print(k,self.knowledges[k].value)
+            if(self.knowledges[k].value>0):
+                idxs.append(k)
+                #break
+        return idxs
 
     def predict(self,img):
-        idx,vmax=self.look(img)
-        return self.knowledges[idx],vmax*100//(ROWS*COLS)
+        idx=self.look(img)
+        return idx
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     import time
     a=time.time()
-    for i in range(500):
+    for i in range(800):
         on.remember(images[:,i].reshape(28,28), labels[i])
     #b=time.time()
     #lb=on.predict(img)
@@ -56,15 +56,15 @@ if __name__ == "__main__":
     #print(labels[0],lb)
     total=0
     ok=0
-    for i in range(2001,2101):
+    for i in range(1000,1100):
         img = images[:, i].reshape(28, 28)
-        lb,score=on.predict(img)
+        lbs=on.predict(img)
         #print(labels[i],lb)
         total = total+1
-        if(labels[i]==lb):
+        if(len(lbs)==1 and labels[i]==lb[0]):
             ok=ok+1
         else:
-            #print(labels[i], lb, score)
+            print(labels[i]," pre:", lbs)
             #pltshow(img)
             #print("====")
             pass

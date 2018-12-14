@@ -3,11 +3,30 @@
 @author:893802998@qq.com
 '''
 
+'''add htmdentritic
 
+neurons ->axon->synape->dendritic->neurons->axon
+     1     1 1  m        1     m    m    1   1
+     
+neurons connect to synape
+                from dendritic
+'''
 class dendritic:
-    def __init__(self,neuron):
-        self.connectedNeuron=neuron
+    def __init__(self):
+        self.connectedNeurons=[] #can link to most neuron
         self.synapses=[]
+        self.value=0
+        self.threshold=0.9
+
+    def connectfrom(self,axon,polarity=1):
+        s=synapse(axon,self,polarity)
+        self.synapses.append(s)
+        axon.synapses.append(s)
+        return s
+
+    def connectto(self,n,polarity=1):
+        self.connectedNeurons.append(n)
+        n.dendritics.append(self)
 
 
 class axon:
@@ -23,15 +42,18 @@ class axon:
         return self.connectedNeuron.value
         #return int(self.connectedNeuron.value>=self.criticalvalue)
 
-    def conduct(self):
+    def conduct(self):# step 1 neuron=>axon
         v=self.getValue()
 #        if(v):
 #            self.connectedNeuron.value-=1
         for s in self.synapses:
             if (s.polarity != 0):
-                s.dendritic.connectedNeuron.value += v * s.polarity
+                s.dendritic.value += v * s.polarity #step 2 axon=>dendritic
             else:
-                s.dendritic.connectedNeuron.value += int(not v)
+                s.dendritic.value += int(not v)
+            if(s.dendritic.value/len(s.dendritic.synapses)>s.dendritic.threshold):# setp 3 htmdendritic=>next neuron
+                for n in s.dendritic.connectedNeurons:
+                    n.value = 1 #actived
 
 
     def actvcritcalvalue(n):
@@ -166,17 +188,20 @@ class synapse:
 class neuron:
     def __init__(self):
         self.value = 0
-        self.dendritic=dendritic(self)
+        self.dendritics=[]
         self.axon=axon(self)
         return
         #init when connect
         #self.dendritic=dendritic(self)
         #self.axon=axon(self)#must have one
 
-    def getValue(self):
+    def getValue(self):#only 0,1  actived deactived
         return self.value
 
+    def conduct(self): #step 0
+        self.axon.conduct() #step 1
 
+'''
     def connectfrom(self,n,polarity=1):
         if(not hasattr(self,"dendritic")):
             self.dendritic=dendritic(self)
@@ -196,9 +221,11 @@ class neuron:
         n.dendritic.synapses.append(s)
         self.axon.synapses.append(s)
         return s
-
-    def conduct(self):
-        self.axon.conduct()
+    def connecthtmdendritic(self,dendritic):
+        self.dendritics.append(dendritic)
+        dendritic.connectedNeurons.append(self)
+        pass
+'''
 
 
 

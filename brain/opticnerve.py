@@ -30,22 +30,30 @@ class opticnerve:
                   for jj in range(ROWS)])# brains
         self.pallium=[] # 促发记忆主要由大脑皮层控制
         self.knowledges=[]
+        self.threshold = 1
 
     def train(self,img,label):
         pass
 
     def remember(self,img,label):
         idx,vmax=self.look(img)
-        if(vmax/786>0.9):
-            if(self.knowledges[idx]==label):
-                #print("Already in mermory!")
+        #print(vmax)
+        if(vmax/(ROWS*COLS)>=self.threshold):
+            if (self.knowledges[idx] == label):
+                #print(label,"Already in mermory!",vmax,vmax/786)
+                #n=self.pallium[idx]
                 return
             else:
-                #print("New",vmax, label, self.knowledges[idx])
-                #pltshow(img)
-                pass
+                print("New", label, self.knowledges[idx],vmax,vmax/786)
+                pltshow(img)
+                n = neuron()
+                self.pallium.append(n)
+                self.knowledges.append(label)
+        else:
+            n = neuron()
+            self.pallium.append(n)
+            self.knowledges.append(label)
 
-        n = neuron()
         r,c=img.shape
         for i in range(r):
             for j in range(c):
@@ -53,19 +61,34 @@ class opticnerve:
                     n.connectfrom(self.neurons[i,j],1)
                 else:
                     n.connectfrom(self.neurons[i, j], 0)
-        self.pallium.append(n)
-        #use nenor get max one
-        self.knowledges.append(label)
-        pass
 
-    #def look_old(self,img):#feeling
-    #    r,c=img.shape
-    #    for i in range(r):
-    #        for j in range(c):
-    #            self.neurons[i,j].value = img[i,j]
-    #            self.neurons[i, j].conduct()
+
+    def center(self,mn):
+        left = 0;
+        right = 29;
+        top = 0;
+        bottom = 29
+        for n in range(28):
+            if (mn[n, :].max() > 0 and left == 0):
+                left = n
+            if (mn[-n, :].max() > 0 and right == 29):
+                right = 29 - n
+            if (mn[:, n].max() > 0 and top == 0):
+                top = n
+            if (mn[:, -n].max() > 0 and bottom == 29):
+                bottom = 29 - n
+
+        new = np.zeros((ROWS,COLS),np.uint8)
+        nleft=(28-(right-left))//2
+        nright=nleft+(right-left)
+        ntop=(28-(bottom-top))//2
+        nbottom=ntop+(bottom-top)
+        new[nleft:nright,ntop:nbottom] = mn[left:right,top:bottom]
+        return new
 
     def look(self,img):
+        #img=self.center(img)
+        #pltshow(img)
         for n in self.pallium:
             n.value=0
         r,c=img.shape
@@ -73,7 +96,7 @@ class opticnerve:
             for j in range(c):
                 self.neurons[i,j].value = img[i,j]
                 self.neurons[i, j].conduct()
-        idx=0;vmax=0
+        idx=-1;vmax=0
         for i in range(len(self.pallium)):
             #print(self.pallium[i].value)
             if(self.pallium[i].value>vmax):
@@ -82,7 +105,7 @@ class opticnerve:
 
     def predict(self,img):
         idx,vmax=self.look(img)
-        return self.knowledges[idx],vmax*100//784
+        return self.knowledges[idx],vmax*100//(ROWS*COLS)
 
 
 if __name__ == "__main__":

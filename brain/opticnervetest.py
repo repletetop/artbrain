@@ -61,12 +61,13 @@ if __name__ == "__main__":
         lb,score=on.predict(img)
         #print(labels[i],lb)
         total = total+1
-        print(labels[i],lb,score)
         if(labels[i]==lb):
             ok=ok+1
         else:
-            pltshow(img)
+            #print(labels[i], lb, score)
+            #pltshow(img)
             #print("====")
+            pass
 
         #import matplotlib.pyplot as plt
         #plt.imshow(img, cmap='gray')
@@ -75,6 +76,9 @@ if __name__ == "__main__":
 #result
 #train test
 #500,  1000  84.4%
-#500   100   76  pass already fast
-#500   100   81  no pass slow
+#500   100   74  pass already fast 0.7
+#500   100   74  pass already fast 0.8
+#500   100   76  pass already fast 0.9
+#500   100   80  pass already fast 0.95
+#500   100   81  no pass slow 1.0
 

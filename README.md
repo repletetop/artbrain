@@ -19,3 +19,5 @@ brain.
    
 突触和突触传递
 https://wenku.baidu.com/view/69e3341bb90d6c85ed3ac618.html
+突触：神经运算的关键，神经元只是状态寄存器
+https://wenku.baidu.com/view/9e5c42f8db38376baf1ffc4ffe4733687e21fc20.html

@@ -17,3 +17,5 @@ brain.
    创造性
    随机生成连接
    
+突触和突触传递
+https://wenku.baidu.com/view/69e3341bb90d6c85ed3ac618.html

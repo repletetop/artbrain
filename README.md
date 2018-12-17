@@ -22,8 +22,9 @@ https://wenku.baidu.com/view/69e3341bb90d6c85ed3ac618.html
 
 突触：神经运算的关键，神经元只是状态寄存器
 https://wenku.baidu.com/view/9e5c42f8db38376baf1ffc4ffe4733687e21fc20.html
-轴-树
-轴-体
-轴-轴
+https://wenku.baidu.com/view/8604c4d8e45c3b3567ec8bf8.html
+轴-树  通常
+轴-体  激发
+轴-轴  ？=》（-轴-树 +轴-树)-》体）两个轴突互相意志
 树-树
 树-体

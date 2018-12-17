@@ -25,7 +25,7 @@ def pltshow(img):
     plt.show()
 
 
-class opticnerve:
+class auditorynerve:
     def __init__(self):
         self.neurons=np.array([[neuron() for ii in range(COLS)]
                   for jj in range(ROWS)])# brains

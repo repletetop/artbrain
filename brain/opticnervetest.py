@@ -47,32 +47,34 @@ if __name__ == "__main__":
 
     import time
     a=time.time()
-    for i in range(800):
-        on.remember(images[:,i].reshape(28,28), labels[i])
-    #b=time.time()
-    #lb=on.predict(img)
-    #c=time.time()
-    #print(b-a,c-b)
-    #print(labels[0],lb)
-    total=0
-    ok=0
-    for i in range(1000,1100):
-        img = images[:, i].reshape(28, 28)
-        lbs=on.predict(img)
-        #print(labels[i],lb)
-        total = total+1
-        if(len(lbs)==1 and labels[i]==lb[0]):
-            ok=ok+1
-        else:
-            print(labels[i]," pre:", lbs)
-            #pltshow(img)
-            #print("====")
-            pass
+    batchs=[5000]#''',400,500'''
+    for n in range(len(batchs)):
+        for i in range(batchs[n]):
+                on.remember(images[:,i].reshape(28,28), labels[i])
+        #b=time.time()
+        #lb=on.predict(img)
+        #c=time.time()
+        #print(b-a,c-b)
+        #print(labels[0],lb)
+        total=0
+        ok=0
+        for i in range(5000,5100):
+            img = images[:, i].reshape(28, 28)
+            lbs=on.predict(img)
+            #print(labels[i],lb)
+            total = total+1
+            if(len(lbs)==1 and labels[i]==lbs[0]):
+                ok=ok+1
+            else:
+                print(labels[i]," pre:", lbs)
+                pltshow(img)
+                #print("====")
+                pass
 
-        #import matplotlib.pyplot as plt
-        #plt.imshow(img, cmap='gray')
-        #plt.show()
-    print("Right:",ok,total,int(ok*100/total),'%')
+            #import matplotlib.pyplot as plt
+            #plt.imshow(img, cmap='gray')
+            #plt.show()
+        print("train ",batchs[n]," Right:",ok,total,int(ok*100/total),'%')
 #result
 #train test
 #500,  1000  84.4%
@@ -81,4 +83,45 @@ if __name__ == "__main__":
 #500   100   76  pass already fast 0.9
 #500   100   80  pass already fast 0.95
 #500   100   81  no pass slow 1.0
-
+#==========================
+#100   1000-1100  62  threshold 0.7
+#200   1000-1100  71  threshold 0.7
+#300   1000-1100  74  threshold 0.7
+#400   1000-1100  76  threshold 0.7
+#500   1000-1100  76  threshold 0.7
+#1000   1000-1100  81  threshold 0.7
+#==========================
+#      5000-5100 threshold 0.7
+#100   58  threshold 0.7
+#200   67  threshold 0.7
+#300   73  threshold 0.7
+#400   79  threshold 0.7
+#500   81  threshold 0.7
+#=============================
+#Train 5000-5100 threshold 0.8
+#100  58
+#200  67
+#300  73
+#400  79
+#500  81
+#=============================
+#Train 5000-5100 threshold 1.0
+#100  0
+#200  0
+#300  0
+#==============================
+#Train 5000-5100 threshold 0.99
+#100  0
+#200  0
+#300  0
+#========================================
+#Train 5000-5100 threshold 0.50,0.10,0,01
+#100  58
+#200  67
+#300  73
+#===================================threshold not need
+#Train 5000-5100 threshold 0.50,0.10,0.00001
+#100  58
+#200  67
+#300  73
+#5000 95%

@@ -16,7 +16,7 @@ class dendritic:
         self.connectedNeurons=[] #can link to most neuron
         self.synapses=[]
         self.value=0
-        self.threshold=0.9
+
 
     def connectfrom(self,axon,polarity=1):
         s=synapse(axon,self,polarity)
@@ -51,9 +51,9 @@ class axon:
                 s.dendritic.value += v * s.polarity #step 2 axon=>dendritic
             else:
                 s.dendritic.value += int(not v)
-            if(s.dendritic.value/len(s.dendritic.synapses)>s.dendritic.threshold):# setp 3 htmdendritic=>next neuron
-                for n in s.dendritic.connectedNeurons:
-                    n.value = 1 #actived
+            #if(s.dendritic.value/len(s.dendritic.synapses)>s.dendritic.threshold):# setp 3 htmdendritic=>next neuron
+            #    for n in s.dendritic.connectedNeurons:
+            #        n.value = 1 #actived
 
 
     def actvcritcalvalue(n):

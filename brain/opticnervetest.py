@@ -1,10 +1,10 @@
 #-*-coding:utf-8-*-
 
 from opticnerve import *
+from hzk import *
+from mnistdatabin import *
 
-
-if __name__ == "__main__":
-    from hzk import *
+def test28x28():
     allhz=hzk()
     i0=hz2img(allhz[0])
     i1=hz2img(allhz[1])
@@ -19,7 +19,8 @@ if __name__ == "__main__":
     #print(i1)
 
 
-    on = opticnerve()
+    on = opticnerve(28,28)
+    #on.load()
     #on.remember(i0, 0)
     #on.remember(i1, 1)
     #on.remember(i2, 2)
@@ -37,7 +38,6 @@ if __name__ == "__main__":
     #lb=on.predict(i2)
     #print(lb)
 
-    from mnistdatabin import *
     #timages = load_train_images()
     #tlabels = load_train_labels()
     images = load_test_images()
@@ -47,10 +47,13 @@ if __name__ == "__main__":
 
     import time
     a=time.time()
-    batchs=[5000]#''',400,500'''
+    batchs=[100]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
                 on.remember(images[:,i].reshape(28,28), labels[i])
+
+        #on.save()
+
         #b=time.time()
         #lb=on.predict(img)
         #c=time.time()
@@ -58,7 +61,7 @@ if __name__ == "__main__":
         #print(labels[0],lb)
         total=0
         ok=0
-        for i in range(5000,5100):
+        for i in range(5100,5200):
             img = images[:, i].reshape(28, 28)
             lbs=on.predict(img)
             #print(labels[i],lb)
@@ -67,7 +70,7 @@ if __name__ == "__main__":
                 ok=ok+1
             else:
                 print(labels[i]," pre:", lbs)
-                pltshow(img)
+                #pltshow(img)
                 #print("====")
                 pass
 
@@ -125,3 +128,33 @@ if __name__ == "__main__":
 #200  67
 #300  73
 #5000 95%
+
+def test3x3():
+    on = opticnerve(3,3)
+    img1=np.array([[0,1,0],
+                   [0,1,0],
+                   [0,1,0]])
+    img2=np.array([[0,0,0],
+                   [1,1,1],
+                   [0,0,0]])
+    img3=np.array([[0,1,0],
+                   [1,1,1],
+                   [0,1,0]])
+    img4=np.array([[0,1,0],
+                   [1,1,1],
+                   [0,1,0]])
+
+    on.remember(img1,"|")
+    #on.remember(img2,'-')
+    on.remember(img3,'+')
+    lbs = on.predict(img4)
+    print(lbs)
+    #on.recall('-')
+    #on.think()
+    #lbs = on.predict(img4)
+    #print(lbs)
+    pass
+
+if __name__ == "__main__":
+    #test28x28()
+    test3x3()

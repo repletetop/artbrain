@@ -29,16 +29,12 @@ def pltshow(img):
     plt.imshow(img, cmap='gray')
     plt.show()
 
-class pallium:#局部回路神经元及抑制
-    def __init__(self):
-        self.neurons=[]
-        self.maxvalue=0
 
 class opticnerve:
     def __init__(self, ROWS, COLS):
         self.neurons = np.array([[neuron() for ii in range(COLS)]
                                  for jj in range(ROWS)])  # brains
-        self.pallium=[] # 促发记忆主要由大脑皮层控制
+        # self.pallium=[] # 促发记忆主要由大脑皮层控制
         self.knowledges = {}
         self.dendritics = []
         self.COLS = COLS
@@ -77,61 +73,36 @@ class opticnerve:
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
             # pltshow(img)
-            nlb = self.knowledges[label]
+            n = self.knowledges[label]
+            d = dendritic()
+            self.dendritics.append(d)
+            d.connectto(n)
             # if label already in memory?
             # not create n ,just create a dendritic ok
         else:
-            nlb = neuron()
-            nlb.label=label
-            self.knowledges[label] = nlb
-
-        n = neuron()
-        nlb.inaxon.append(n.axon)
-        n.axon.outneurons.append(nlb)
-        d=n.dendritic
-        #negative,positive
-        nn=neuron()
-        npt=neuron()
-        d.connectfrom(nn.axon,1)
-        d.connectfrom(npt.axon,1)
-        dn=nn.dendritic
-        dp=npt.dendritic
-        self.pallium.append(npt)
-        self.pallium.append(nn)
-        self.pallium.append(n)
+            n = neuron()
+            d = dendritic()
+            self.dendritics.append(d)
+            d.connectto(n)
+            self.knowledges[label] = n
 
         r, c = img.shape
         for i in range(r):
             for j in range(c):
-                if (img[i][j] > 0):#positive
-                    dp.connectfrom(self.neurons[i, j].axon, 1)
-                else:#negative
-                    dn.connectfrom(self.neurons[i, j].axon, -1)
+                if (img[i][j] != 0):
+                    d.connectfrom(self.neurons[i, j].axon, 1)
+                else:
+                    d.connectfrom(self.neurons[i, j].axon, 0)
 
     def think(self):  # set tree
-        def isAinB(a,b):
-            for s in a.synapses:
-                if(s.polarity==1):
-                    return True
-            return True
-        for d in self.dendritics:
-            for dd in self.dendritics:
-                if(dd==d):continue
-                if isAinB(dd,d):
-                    print(dd," in ",d)
-                else:
-                    print(dd," not in ",d)
 
         pass
 
     def reset(self):
         for k in self.knowledges:
             self.knowledges[k].value = 0
-            self.knowledges[k].dendritic.value=0
-        for n in self.pallium:
-            n.value=0
-            n.dendritic.value=0
-
+            for d in self.knowledges[k].dendritics:
+                d.value = 0
         self.keys = list(self.knowledges.keys())
         self.values = list(self.knowledges.values())
 
@@ -165,57 +136,29 @@ class opticnerve:
         r, c = img.shape
         for i in range(r):
             for j in range(c):
-                #if img[i, j]!=0:
-                    self.neurons[i, j].value = img[i, j]
-                    self.neurons[i, j].conduct()
-        #hengxiang yizhi
-        pts=[]
-        vmax=-1
-        nmax=None
-        for n in self.pallium:
-            n.calcValue()
-            #if(n.value==1):
-            #    pts.append(n)
-            if vmax<n.value:
-                vmax=n.value
-                nmax=n
-            n.conduct()
+                self.neurons[i, j].value = img[i, j]
+                self.neurons[i, j].conduct()
 
-        if nmax is None:
-            return []
-        else:
-            return nmax.axon.outneurons[0].label
+        vmax = -1
+        dmax = None
+        for d in self.dendritics:
+            if (d.value > vmax):
+                vmax = d.value
+                dmax = d
+        idxs = []
+        # list(student.keys())[list(student.values()).index('1004')]
 
-
-
-#        idxs=[]
-#        if(len(pts)>0):
-#            for n in pts[-1].axon.outneurons:
-#                idxs.append(n.label)
-
-#        for k in self.knowledges:
-#            self.knowledges[k].calcValue()
-#            if self.knowledges[k].value>0:
-#                #lb = self.keys[self.values.index(self.knowledges[k])]
-#                lb=self.knowledges[k].label
-#                idxs.append(lb)
- 
+        # if(vmax>0 and vmax>=self.threshold):
+        if (vmax > 0):
+            for n in dmax.connectedNeurons:
+                lb = self.keys[self.values.index(n)]
+                idxs.append(lb)
 
         return idxs
 
     def predict(self, img):
         idx = self.look(img)
         return idx
-    def recall(self,label):
-        n=self.knowledges[label]
-        n.recall()
-        img=np.zeros((self.ROWS,self.COLS),np.uint8)
-        for i in range(self.ROWS):
-            for j in range(self.COLS):
-                img[i,j]=self.neurons[i,j].value
-        print (img)
-
-        pass
 
 
 if __name__ == "__main__":

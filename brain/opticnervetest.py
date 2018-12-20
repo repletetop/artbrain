@@ -47,7 +47,7 @@ def test28x28():
 
     import time
     a=time.time()
-    batchs=[500]#''',400,500'''
+    batchs=[200]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
             if(i==9):
@@ -146,11 +146,26 @@ def test3x3():
     img4=np.array([[0,1,0],
                    [1,0,1],
                    [0,1,0]])
+    img5=np.array([[0,1,0],
+                   [0,1,0],
+                   [0,0,0]])
+    img6=np.array([[0,0,0],
+                   [0,1,0],
+                   [0,1,0]])
+
+    img7=np.array([[0,0,0],
+                   [1,1,0],
+                   [0,0,0]])
+    img8=np.array([[0,0,0],
+                   [0,1,1],
+                   [0,0,0]])
+
 
     on.remember(img1,"|")
     on.remember(img2,'-')
     on.remember(img3,'+')
-    lbs = on.predict(img4)
+    lbs = on.predict(img7)
+    #lbs = on.predict(img8)
     print(lbs)
     #on.recall('-')
     #on.think()
@@ -160,4 +175,4 @@ def test3x3():
 
 if __name__ == "__main__":
     test28x28()
-    #test3x3()
+   #s test3x3()

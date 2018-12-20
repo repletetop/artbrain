@@ -122,7 +122,88 @@ class opticnerve:
         new[nleft:nright, ntop:nbottom] = mn[left:right, top:bottom]
         return new
 
+
+    def look(self, img):  # get max overlap
+        # img=self.center(img)
+        # pltshow(img)
+        self.reset()
+        r, c = img.shape
+        for i in range(r):
+            for j in range(c):
+                # if img[i, j]!=0:
+                self.neurons[i, j].value = img[i, j]
+                self.neurons[i, j].conduct()
+        # hengxiang yizhi
+        self.positive = []
+        vmax = -1
+        nmax = None
+        # self.tmp=[]
+        for n in self.pallium:
+            n.calcValue()
+            if(n.dendritic.value==len(n.dendritic.synapses)):
+                self.positive.append(n)
+            n.conduct()
+            if vmax < n.value:
+                vmax = n.value
+                nmax = n
+        if nmax!=None and nmax.dendritic.value/len(nmax.dendritic.synapses)>0.6:
+            return nmax  # max overlap
+        return None
+
+
     def remember(self, img, label):
+        nmax = self.look(img)  # found mutipy?
+        if (nmax!=None):
+            lb=nmax.axon.outneurons[0].label
+            if lb==label:
+                return
+
+        if (self.knowledges.__contains__(label)):
+            # print("Already in,create dendritic only", label)
+            nlb = self.knowledges[label]
+        else:
+            nlb = neuron()
+            #self.pallium.append(nlb)
+            nlb.label=label
+            self.knowledges[label] = nlb
+        #how to create tree
+
+        npt = neuron()
+        self.pallium.append(npt)
+        dnpt=npt.dendritic
+        nn = neuron()
+        self.pallium.append(nn)
+        dn=nn.dendritic
+
+        n = neuron()
+        self.pallium.append(n)
+        nlb.inaxon.append(n.axon)
+        n.axon.outneurons.append(nlb)
+        d=n.dendritic
+        d.connectfrom(npt.axon,1)
+        d.connectfrom(nn.axon,1)
+
+
+#        imgleft=self.output()
+#        if(imgleft.sum()==0 and len(self.positive)>0):
+#            for pn in self.positive:
+#                dnpt.connectfrom(pn.axon, 1)
+#                pn.recall()
+#            r, c = img.shape
+#            for i in range(r):
+#                for j in range(c):
+#                    if (img[i][j] == 0):  # negative
+#                        dn.connectfrom(self.neurons[i, j].axon, -1)
+#            return
+
+        r, c = img.shape
+        for i in range(r):
+            for j in range(c):
+                if (img[i][j] > 0):#positive
+                    dnpt.connectfrom(self.neurons[i, j].axon, 1)
+                else:#negative
+                    dn.connectfrom(self.neurons[i, j].axon, -1)
+    def remember_org(self, img, label):#train  500  Right: 83 100 83 %
         nmax = self.look(img)  # found mutipy?
         #if len(self.positive)>0:
         #    lb = self.positive[-1].axon.outneurons[0].label
@@ -130,9 +211,6 @@ class opticnerve:
             lb=nmax.axon.outneurons[0].label
             if lb==label:
                 return
-        #else:
-        #    lb=""
-
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
@@ -140,12 +218,12 @@ class opticnerve:
             nlb = self.knowledges[label]
             # if label already in memory?
             # not create n ,just create a dendritic ok
-
         else:
             nlb = neuron()
             #self.pallium.append(nlb)
             nlb.label=label
             self.knowledges[label] = nlb
+        #how to create tree
 
         npt = neuron()
         self.pallium.append(npt)
@@ -177,52 +255,6 @@ class opticnerve:
                 else:#negative
                     dn.connectfrom(self.neurons[i, j].axon, -1)
 
-    def look(self, img):#get max overlap
-        # img=self.center(img)
-        # pltshow(img)
-        self.reset()
-        r, c = img.shape
-        for i in range(r):
-            for j in range(c):
-                #if img[i, j]!=0:
-                    self.neurons[i, j].value = img[i, j]
-                    self.neurons[i, j].conduct()
-        #hengxiang yizhi
-        self.positive=[]
-        vmax=-1
-        nmax=None
-        #self.tmp=[]
-        for n in self.pallium:
-            n.calcValue()
-            n.conduct()
-            if vmax < n.value:
-                vmax = n.value
-                nmax = n
-            #if(n.value>0):
-            #    self.tmp.append(n)
-            #if( n.value>0 and n.dendritic.value/len(n.dendritic.synapses)>=0.7):#AUB-A^B-| =5
-            #    self.positive.append(n)
-
-        #if(nmax!=None):
-        #    self.positive.append(nmax)
-        return nmax #max overlap
-
-
-
-#        idxs=[]
-#        if(len(pts)>0):
-#            for n in pts[-1].axon.outneurons:
-#                idxs.append(n.label)
-
-#        for k in self.knowledges:
-#            self.knowledges[k].calcValue()
-#            if self.knowledges[k].value>0:
-#                #lb = self.keys[self.values.index(self.knowledges[k])]
-#                lb=self.knowledges[k].label
-#                idxs.append(lb)
- 
-
-        return idxs
 
     def predict(self, img):
         nmax = self.look(img)

@@ -65,48 +65,6 @@ class opticnerve:
     def train(self, img, label):
         pass
 
-    def remember(self, img, label):
-        lb = self.look(img)  # found mutipy?
-        if (len(lb) > 0):
-            if (lb[0] == label):
-                return
-            else:
-                # print(lb)
-                pass
-
-        if (self.knowledges.__contains__(label)):
-            # print("Already in,create dendritic only", label)
-            # pltshow(img)
-            nlb = self.knowledges[label]
-            # if label already in memory?
-            # not create n ,just create a dendritic ok
-        else:
-            nlb = neuron()
-            nlb.label=label
-            self.knowledges[label] = nlb
-
-        n = neuron()
-        nlb.inaxon.append(n.axon)
-        n.axon.outneurons.append(nlb)
-        d=n.dendritic
-        #negative,positive
-        nn=neuron()
-        npt=neuron()
-        d.connectfrom(nn.axon,1)
-        d.connectfrom(npt.axon,1)
-        dn=nn.dendritic
-        dp=npt.dendritic
-        self.pallium.append(npt)
-        self.pallium.append(nn)
-        self.pallium.append(n)
-
-        r, c = img.shape
-        for i in range(r):
-            for j in range(c):
-                if (img[i][j] > 0):#positive
-                    dp.connectfrom(self.neurons[i, j].axon, 1)
-                else:#negative
-                    dn.connectfrom(self.neurons[i, j].axon, -1)
 
     def think(self):  # set tree
         def isAinB(a,b):
@@ -125,12 +83,18 @@ class opticnerve:
         pass
 
     def reset(self):
+        for i in range(self.ROWS):
+            for j in range(self.COLS):
+                self.neurons[i,j].value = 0
+
         for k in self.knowledges:
             self.knowledges[k].value = 0
             self.knowledges[k].dendritic.value=0
         for n in self.pallium:
             n.value=0
             n.dendritic.value=0
+
+        self.positive = []
 
         self.keys = list(self.knowledges.keys())
         self.values = list(self.knowledges.values())
@@ -158,6 +122,52 @@ class opticnerve:
         new[nleft:nright, ntop:nbottom] = mn[left:right, top:bottom]
         return new
 
+    def remember(self, img, label):
+        nmax = self.look(img)  # found mutipy?
+        #if len(self.positive)>0:
+        #    lb = self.positive[-1].axon.outneurons[0].label
+        if (nmax!=None):
+            lb=nmax.axon.outneurons[0].label
+            if lb==label:
+                return
+        #else:
+        #    lb=""
+
+
+        if (self.knowledges.__contains__(label)):
+            # print("Already in,create dendritic only", label)
+            # pltshow(img)
+            nlb = self.knowledges[label]
+            # if label already in memory?
+            # not create n ,just create a dendritic ok
+
+        else:
+            nlb = neuron()
+            #self.pallium.append(nlb)
+            nlb.label=label
+            self.knowledges[label] = nlb
+
+        n = neuron()
+        self.pallium.append(n)
+        nlb.inaxon.append(n.axon)
+        n.axon.outneurons.append(nlb)
+        d=n.dendritic
+
+
+        imgleft=self.output()
+        if(imgleft.sum()==0 and len(self.positive)>0):
+            for pn in self.positive:
+                d.connectfrom(pn.axon, 1)
+            return
+
+        r, c = img.shape
+        for i in range(r):
+            for j in range(c):
+                if (img[i][j] > 0):#positive
+                    d.connectfrom(self.neurons[i, j].axon, 1)
+                #else:#negative
+                #    dn.connectfrom(self.neurons[i, j].axon, -1)
+
     def look(self, img):
         # img=self.center(img)
         # pltshow(img)
@@ -169,22 +179,24 @@ class opticnerve:
                     self.neurons[i, j].value = img[i, j]
                     self.neurons[i, j].conduct()
         #hengxiang yizhi
-        pts=[]
+        self.positive=[]
         vmax=-1
         nmax=None
+        self.tmp=[]
         for n in self.pallium:
             n.calcValue()
-            #if(n.value==1):
-            #    pts.append(n)
-            if vmax<n.value:
-                vmax=n.value
-                nmax=n
             n.conduct()
+            if(n.value>0):
+                self.tmp.append(n)
+            if( n.value>0 and n.dendritic.value/len(n.dendritic.synapses)>=0.7):#AUB-A^B-| =5
+                self.positive.append(n)
+                if vmax < n.value:
+                    vmax = n.value
+                    nmax = n
 
-        if nmax is None:
-            return []
-        else:
-            return nmax.axon.outneurons[0].label
+        #if(nmax!=None):
+        #    self.positive.append(nmax)
+        return nmax
 
 
 
@@ -204,16 +216,23 @@ class opticnerve:
         return idxs
 
     def predict(self, img):
-        idx = self.look(img)
-        return idx
+        nmax = self.look(img)
+        if(nmax !=None):
+            return nmax.axon.outneurons[0].label
+        else:
+            return None
+
     def recall(self,label):
         n=self.knowledges[label]
         n.recall()
+        img=self.output()
+        print(img)
+    def output(self):
         img=np.zeros((self.ROWS,self.COLS),np.uint8)
         for i in range(self.ROWS):
             for j in range(self.COLS):
                 img[i,j]=self.neurons[i,j].value
-        print (img)
+        return img
 
         pass
 

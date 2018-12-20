@@ -47,10 +47,10 @@ def test28x28():
 
     import time
     a=time.time()
-    batchs=[42]#''',400,500'''
+    batchs=[100]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
-            if(i==19):
+            if(i==9):
                 b=0
                 pass
             on.remember(images[:,i].reshape(28,28), labels[i])
@@ -64,7 +64,7 @@ def test28x28():
         #print(labels[0],lb)
         total=0
         ok=0
-        for i in range(0,42):
+        for i in range(0,100):
             img = images[:, i].reshape(28, 28)
             lb=on.predict(img)
             #print(labels[i],lb)
@@ -72,7 +72,7 @@ def test28x28():
             if(labels[i]==lb):
                 ok=ok+1
             else:
-                print(labels[i]," pre:", lb)
+                print(i," label:" ,labels[i]," pre:", lb)
                 #pltshow(img)
                 #print("====")
                 pass
@@ -144,7 +144,7 @@ def test3x3():
                    [1,1,1],
                    [0,1,0]])
     img4=np.array([[0,1,0],
-                   [1,1,1],
+                   [1,0,1],
                    [0,1,0]])
 
     on.remember(img1,"|")

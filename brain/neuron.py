@@ -79,7 +79,7 @@ class neuron:
             if (s.polarity > 0) :#+1,-1 postive nagative
                 s.dendritic.value += (self.value*s.polarity)  # step 2 axon=>dendritic
             else:
-                s.dendritic.value += (self.value*s.polarity+1)
+                s.dendritic.value += (self.value*s.polarity+1)#0=>1 1=>0
         # back send
         if self.axon.synapses != []:
             self.value = 0

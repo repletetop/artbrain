@@ -62,9 +62,6 @@ class opticnerve:
             self.dendritics = f.get('dendritics')
         f.close()
 
-    def train(self, img, label):
-        pass
-
 
     def think(self):  # set tree
         def isAinB(a,b):
@@ -82,10 +79,13 @@ class opticnerve:
 
         pass
 
-    def reset(self):
+    def clearneurons(self):
         for i in range(self.ROWS):
             for j in range(self.COLS):
                 self.neurons[i,j].value = 0
+
+    def reset(self):
+        self.clearneurons()
 
         for k in self.knowledges:
             self.knowledges[k].value = 0
@@ -147,28 +147,37 @@ class opticnerve:
             nlb.label=label
             self.knowledges[label] = nlb
 
+        npt = neuron()
+        self.pallium.append(npt)
+        dnpt=npt.dendritic
+        nn = neuron()
+        self.pallium.append(nn)
+        dn=nn.dendritic
+
         n = neuron()
         self.pallium.append(n)
         nlb.inaxon.append(n.axon)
         n.axon.outneurons.append(nlb)
         d=n.dendritic
+        d.connectfrom(npt.axon,1)
+        d.connectfrom(nn.axon,1)
 
 
-        imgleft=self.output()
-        if(imgleft.sum()==0 and len(self.positive)>0):
-            for pn in self.positive:
-                d.connectfrom(pn.axon, 1)
-            return
+        #imgleft=self.output()
+        #if(imgleft.sum()==0 and len(self.positive)>0):
+        #    for pn in self.positive:
+        #        d.connectfrom(pn.axon, 1)
+        #    return
 
         r, c = img.shape
         for i in range(r):
             for j in range(c):
                 if (img[i][j] > 0):#positive
-                    d.connectfrom(self.neurons[i, j].axon, 1)
-                #else:#negative
-                #    dn.connectfrom(self.neurons[i, j].axon, -1)
+                    dnpt.connectfrom(self.neurons[i, j].axon, 1)
+                else:#negative
+                    dn.connectfrom(self.neurons[i, j].axon, -1)
 
-    def look(self, img):
+    def look(self, img):#get max overlap
         # img=self.center(img)
         # pltshow(img)
         self.reset()
@@ -182,21 +191,21 @@ class opticnerve:
         self.positive=[]
         vmax=-1
         nmax=None
-        self.tmp=[]
+        #self.tmp=[]
         for n in self.pallium:
             n.calcValue()
             n.conduct()
-            if(n.value>0):
-                self.tmp.append(n)
-            if( n.value>0 and n.dendritic.value/len(n.dendritic.synapses)>=0.7):#AUB-A^B-| =5
-                self.positive.append(n)
-                if vmax < n.value:
-                    vmax = n.value
-                    nmax = n
+            if vmax < n.value:
+                vmax = n.value
+                nmax = n
+            #if(n.value>0):
+            #    self.tmp.append(n)
+            #if( n.value>0 and n.dendritic.value/len(n.dendritic.synapses)>=0.7):#AUB-A^B-| =5
+            #    self.positive.append(n)
 
         #if(nmax!=None):
         #    self.positive.append(nmax)
-        return nmax
+        return nmax #max overlap
 
 
 

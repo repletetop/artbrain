@@ -47,7 +47,7 @@ def test28x28():
 
     import time
     a=time.time()
-    batchs=[100]#''',400,500'''
+    batchs=[500]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
             if(i==9):
@@ -64,7 +64,7 @@ def test28x28():
         #print(labels[0],lb)
         total=0
         ok=0
-        for i in range(0,100):
+        for i in range(5000,5100):
             img = images[:, i].reshape(28, 28)
             lb=on.predict(img)
             #print(labels[i],lb)

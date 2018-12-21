@@ -63,21 +63,6 @@ class opticnerve:
         f.close()
 
 
-    def think(self):  # set tree
-        def isAinB(a,b):
-            for s in a.synapses:
-                if(s.polarity==1):
-                    return True
-            return True
-        for d in self.dendritics:
-            for dd in self.dendritics:
-                if(dd==d):continue
-                if isAinB(dd,d):
-                    print(dd," in ",d)
-                else:
-                    print(dd," not in ",d)
-
-        pass
 
     def clearneurons(self):
         for i in range(self.ROWS):
@@ -134,21 +119,22 @@ class opticnerve:
                 self.neurons[i, j].value = img[i, j]
                 self.neurons[i, j].conduct()
         # hengxiang yizhi
-        self.positive = []
+        #self.positive = []
         vmax = -1
         nmax = None
         # self.tmp=[]
         for n in self.pallium:
             n.calcValue()
-            if(n.dendritic.value==len(n.dendritic.synapses)):
-                self.positive.append(n)
+            #if(n.dendritic.value==len(n.dendritic.synapses)):
+            #    self.positive.append(n)
             n.conduct()
             if vmax < n.value:
                 vmax = n.value
                 nmax = n
-        if nmax!=None and nmax.dendritic.value/len(nmax.dendritic.synapses)>0.6:
-            return nmax  # max overlap
-        return None
+        return nmax
+        #if nmax!=None and nmax.dendritic.value/len(nmax.dendritic.synapses)>0.6:
+        #    return nmax  # max overlap
+        #return None
 
 
     def remember(self, img, label):
@@ -184,17 +170,18 @@ class opticnerve:
         d.connectfrom(nn.axon,1)
 
 
-#        imgleft=self.output()
-#        if(imgleft.sum()==0 and len(self.positive)>0):
-#            for pn in self.positive:
-#                dnpt.connectfrom(pn.axon, 1)
-#                pn.recall()
-#            r, c = img.shape
-#            for i in range(r):
-#                for j in range(c):
-#                    if (img[i][j] == 0):  # negative
-#                        dn.connectfrom(self.neurons[i, j].axon, -1)
-#            return
+        #imgleft=self.output()
+        #if(imgleft.sum()==0 and len(self.positive)>0):
+        #    for pn in self.positive:
+        #        dnpt.connectfrom(pn.axon, 1)
+        #        #pn.recall()
+        #        #print(self.output())
+        #    r, c = img.shape
+        #    for i in range(r):
+        #        for j in range(c):
+        #            if (img[i][j] == 0):  # negative
+        #                dn.connectfrom(self.neurons[i, j].axon, -1)
+        #    return
 
         r, c = img.shape
         for i in range(r):
@@ -203,6 +190,49 @@ class opticnerve:
                     dnpt.connectfrom(self.neurons[i, j].axon, 1)
                 else:#negative
                     dn.connectfrom(self.neurons[i, j].axon, -1)
+    def think(self):
+        imax=0
+        for i in range(self.ROWS):
+            for j in range(self.COLS):
+                if imax<len(self.neurons[i,j].axon.synapses):
+                    imax = len(self.neurons[i, j].axon.synapses)
+                #print(i,j,len(self.neurons[i, j].axon.synapses))
+
+                if len(self.neurons[i, j].axon.synapses)<10:#
+                    continue
+                isFirst=True
+                for s in self.neurons[i, j].axon.synapses:
+                    ns=[]
+                    for ds in s.dendritic.synapses:
+                        ns.append(ds.axon) # one dendritic
+                    if isFirst:
+                        isFirst=False
+                        intersection=set(ns)
+                    else:
+                        intersection = intersection & set(ns)
+
+                if(len(intersection)>10):
+                    #print("intersction len:",len(intersection))
+                    n=neuron()
+                    self.pallium.append(n)
+                    for axon in intersection:
+                        n.dendritic.connectfrom(axon,1)
+
+                    for s in self.neurons[i,j].axon.synapses:
+                        for ds in s.dendritic.synapses:#every dendritic
+                            if ds.axon in intersection:
+                                s.dendritic.synapses.remove(ds)
+                        s.dendritic.connectfrom(n.axon,1)
+
+        #print(imax)
+
+
+#synapses: 112398
+#After think:
+#synapses: 83982
+
+
+
     def remember_org(self, img, label):#train  500  Right: 83 100 83 %
         nmax = self.look(img)  # found mutipy?
         #if len(self.positive)>0:
@@ -274,7 +304,11 @@ class opticnerve:
             for j in range(self.COLS):
                 img[i,j]=self.neurons[i,j].value
         return img
-
+    def status(self):
+        s=0
+        for n in self.pallium:
+           s+= len(n.dendritic.synapses)
+        print("synapses:",s)
         pass
 
 

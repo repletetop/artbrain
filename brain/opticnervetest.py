@@ -47,7 +47,7 @@ def test28x28():
 
     import time
     a=time.time()
-    batchs=[200]#''',400,500'''
+    batchs=[100]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
             if(i==9):
@@ -56,6 +56,11 @@ def test28x28():
             on.remember(images[:,i].reshape(28,28), labels[i])
 
         #on.save()
+        #print("Before think:")
+        #on.status()
+        #on.think()
+        #print("After think:")
+        #on.status()
 
         #b=time.time()
         #lb=on.predict(img)
@@ -64,6 +69,7 @@ def test28x28():
         #print(labels[0],lb)
         total=0
         ok=0
+        b = time.time()
         for i in range(5000,5100):
             img = images[:, i].reshape(28, 28)
             lb=on.predict(img)
@@ -80,6 +86,10 @@ def test28x28():
             #import matplotlib.pyplot as plt
             #plt.imshow(img, cmap='gray')
             #plt.show()
+
+        c = time.time()
+        print(c - b)
+
         print("train ",batchs[n]," Right:",ok,total,int(ok*100/total),'%')
 #result
 #train test

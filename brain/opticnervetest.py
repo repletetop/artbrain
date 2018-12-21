@@ -57,10 +57,10 @@ def test28x28():
 
         #on.save()
         #print("Before think:")
-        #on.status()
-        #on.think()
-        #print("After think:")
-        #on.status()
+        on.status()
+        on.think() #too slow
+        print("After think:")
+        on.status()
 
         #b=time.time()
         #lb=on.predict(img)
@@ -142,6 +142,8 @@ def test28x28():
 #300  73
 #5000 95%
 
+#speed 100,6.47
+#calc by neuron 100,0.93
 def test3x3():
     on = opticnerve(3,3)
     img1=np.array([[0,1,0],
@@ -182,7 +184,38 @@ def test3x3():
     #lbs = on.predict(img4)
     #print(lbs)
     pass
+def testfeel():
+    on = opticnerve(28,28)
+    images = load_test_images()
+    labels = load_test_labels()
+
+    img=images[:,0].reshape(28,28)
+
+    import time
+    a=time.time()
+    batchs=[500]#''',400,500'''
+
+    xx=0
+    for n in range(len(batchs)):
+        for i in range(batchs[n]):
+            if(i==9):
+                b=0
+                pass
+            on.feel(images[:,i].reshape(28,28))
+            xx=xx+images[:,i].sum()+1
+            print(i,images[:,i].sum(),xx)
+            on.status()
+
+        for n in on.pallium:
+            on.clearneurons()
+            n.recall()
+            img=on.output()
+            if(img.sum()>20):
+                pltshow(img)
+
+        on.status()
 
 if __name__ == "__main__":
     test28x28()
-   #s test3x3()
+   # test3x3()
+   #testfeel()

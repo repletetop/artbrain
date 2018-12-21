@@ -14,8 +14,8 @@ neurons connect to synape
 
 
 class dendritic:
-    def __init__(self):
-        self.connectedNeurons = []  # can link to most neuron
+    def __init__(self,neuron):
+        self.connectedNeuron = neuron  # can link to most neuron
         self.synapses = []
         self.value = 0
 
@@ -29,6 +29,10 @@ class dendritic:
         self.synapses.append(s)
         axon.synapses.append(s)
         return s
+    def disconnect(self,ss):
+        self.synapses.remove(ss)
+        ss.axon.synapses.remove(ss)
+        del ss
 
 
 class axon:
@@ -52,7 +56,7 @@ class synapse:
 class neuron:
     def __init__(self):
         self.value = 0
-        self.dendritic = dendritic()  # axon-dendritic
+        self.dendritic = dendritic(self)  # axon-dendritic
         self.inaxon = []  # axon->neuron
         self.axon = axon(self)  # output axon
         return
@@ -61,8 +65,13 @@ class neuron:
         for axon in self.inaxon:
             self.value = 1
             return
-
-        self.value = self.dendritic.value
+        v=0
+        for s in self.dendritic.synapses:
+            if(s.polarity>0):
+                v=v+s.axon.connectedNeuron.value
+            else:
+                v=v+int(not s.axon.connectedNeuron.value)
+        self.value = v
 
 
         # print(self.dendritic)
@@ -75,7 +84,7 @@ class neuron:
     def conduct(self):  # step 0
         # self.axon.conduct() #step 1
         # self.calcValue()
-        v=self.dendritic.value
+        v=self.value
         #nv=int(not v)
         for s in self.axon.synapses:
             if (s.polarity > 0) :#+1,-1 postive nagative

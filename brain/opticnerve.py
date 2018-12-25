@@ -5,6 +5,11 @@ import shelve
 from neuron import *
 import itertools
 
+import pandas as pd
+from pandas import Series,DataFrame
+from goto import with_goto
+import sys
+
 '''
 2.促发记忆：这个记忆类型可能我们平时听的不多，但是也非常有用。例如我们读一段文字：
 “今年有很多节日，春节、清明节，我们都非常喜欢节日，每次过节的时候节目也很多”是不是
@@ -161,9 +166,7 @@ class opticnerve:
                     #n.dendritic.connectfrom(self.neurons[i, j].axon, -1)
         self.pallium.append(n)
 
-    def look(self, img):  # get max overlap
-        # img=self.center(img)
-        # pltshow(img)
+    def input(self,img):
         self.reset()
         r, c = img.shape
         for i in range(r):
@@ -171,56 +174,70 @@ class opticnerve:
                 # if img[i, j]!=0:
                 self.neurons[i, j].value = img[i, j]
                 #self.neurons[i, j].conduct()
-        # hengxiang yizhi
-        #self.positive = []
-        vmax = -1
-        nmax = None
-        # self.tmp=[]
-        for n in self.pallium:
-            n.calcValue()
-            #if(n.dendritic.value==len(n.dendritic.synapses)):
-            #    self.positive.append(n)
-            #n.conduct()
-            if vmax < n.value:
-                vmax = n.value
-                nmax = n
+    def conduct(self):
+        for i in range(self.ROWS):
+            for j in range(self.COLS):
+                    self.neurons[i, j].conduct(self.actived)
+
+    def look(self, img):  # get max overlap
+        #if len(self.knowledges)==0:
+        #    self.actived=[]
+        #    return None
+        self.input(img)
+        self.actived=[]
+        self.times=0
+        while True:
+            self.conduct()
+            self.times+=1
+            if self.actived!=[]:
+                break
+        vmax=self.actived[0].dendritic.value
+        nmax=self.actived[0]
+        for n in self.actived[1:]:
+            if n.dendritic.value>vmax:
+                vmax = n.dendritic.value
+                nmax=n
         return nmax
-        #if nmax!=None and nmax.dendritic.value/len(nmax.dendritic.synapses)>0.6:
-        #    return nmax  # max overlap
-        #return None
+
+        #vmax=self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)
+        #nmax=self.actived[0]
+        #for n in self.actived[1:]:
+        #    if self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)>vmax:
+        #        vmax = self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)
+        #        nmax=n
+        #return nmax
+
+
 
 
     def remember(self, img, label):
-        nmax = self.look(img)  # found mutipy?
+        if len(self.knowledges)>0:
+            nmax = self.look(img)  # found mutipy?
+        else:
+            nmax=None
+        #remember every thing diffrence
         if (nmax!=None):
             lb=nmax.axon.outneurons[0].label
-            if lb==label:
+            if lb==label and self.times<=1:
                 return
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
             nlb = self.knowledges[label]
+            n=neuron()
+            self.pallium.append(n)
+            nlb.inaxon.append(n)
+            n.axon.outneurons.append(nlb)
+            d=n.dendritic
         else:
             nlb = neuron()
-            #self.pallium.append(nlb)
+            self.knowledges[label]=nlb
             nlb.label=label
-            self.knowledges[label] = nlb
-        #how to create tree
-
-        npt = neuron()
-        self.pallium.append(npt)
-        dnpt=npt.dendritic
-        nn = neuron()
-        self.pallium.append(nn)
-        dn=nn.dendritic
-
-        n = neuron()
-        self.pallium.append(n)
-        nlb.inaxon.append(n.axon)
-        n.axon.outneurons.append(nlb)
-        d=n.dendritic
-        d.connectfrom(npt.axon,1)
-        d.connectfrom(nn.axon,1)
+            n=neuron()
+            self.pallium.append(n)
+            nlb.inaxon.append(n)
+            n.axon.outneurons.append(nlb)
+            d=n.dendritic
 
 
         #imgleft=self.output()
@@ -240,9 +257,9 @@ class opticnerve:
         for i in range(r):
             for j in range(c):
                 if (img[i][j] > 0):#positive
-                    dnpt.connectfrom(self.neurons[i, j].axon, 1)
-                else:#negative
-                    dn.connectfrom(self.neurons[i, j].axon, -1)
+                    d.connectfrom(self.neurons[i, j].axon, 1)
+                #else:#negative
+                #    dn.connectfrom(self.neurons[i, j].axon, -1)
     def reform(self,synapses):
         isFirst = True
         for s in synapses:
@@ -292,18 +309,17 @@ class opticnerve:
                 cnt = cnt-1
 
     def thinkneuron(self,nun):#random
-        ret = self.reform(nun.axon.synapses)
-        cnt = len(nun.axon.synapses)
-        while cnt>5:
-            print(cnt)
-            obj = Series(nun.axon.synapses)
-            ob = obj.sample(frac=0.8, random_state=6)
-            ss=ob.tolist()
-            ret = self.reform(ss)
-            if(ret):
-                cnt = len(nun.axon.synapses)
-            else:
-                cnt = cnt-1
+        dictaxonpolarity={}
+        for s in nun.axon.synapses:
+            for ds in s.dendritic.synapses:
+                axonpolarity = (ds.axon, ds.polarity)
+                if(axonpolarity in dictaxonpolarity):
+                    dictaxonpolarity[axonpolarity].append(s.dendritic)
+                else:
+                    dictaxonpolarity[axonpolarity] =[s.dendritic]
+        print (dictaxonpolarity)
+
+
 
     def thinkneuron_slow(self,nun):#slow
         cnt=len(nun.axon.synapses)
@@ -316,21 +332,94 @@ class opticnerve:
                     break;
             cnt = cnt - 1
 
-    def think(self):#think is too slow
-        imax=0
+    @with_goto
+    def think(self):#_two letter common most pix
+        label .begin
+        maxlen=0
+        for i in range(len(self.pallium)):
+            for j in range(i+1,len(self.pallium)):
+                ni=self.pallium[i]
+                nj=self.pallium[j]
+                ai=[]
+                for s in ni.dendritic.synapses:
+                    ai.append(s.axon)
+                aj=[]
+                for s in nj.dendritic.synapses:
+                    aj.append(s.axon)
+                intersection=set(ai) & set(aj)
+                if(maxlen<len(intersection)):
+                    maxlen=len(intersection)
+                    mi=i;mj=j;da=intersection;
+
+        if maxlen>10:
+            print(mi,mj,maxlen,end=", ")
+            sys.stdout.flush()
+            n = neuron()
+            self.pallium.append(n)
+            self.pallium[mi].dendritic.connectfrom(n.axon, 1)
+            self.pallium[mj].dendritic.connectfrom(n.axon, 1)
+            for a in da:
+                n.dendritic.connectfrom(a, 1)
+                self.pallium[mi].dendritic.disconnectfrom(a)
+                self.pallium[mj].dendritic.disconnectfrom(a)
+            #output
+            self.clearneurons()
+            n.recall()
+            img=self.output()
+            pltshow(img)
+            #####
+            goto .begin
+
+
+
+    def think_mostlettercommon(self):#think most letter comm
+        dictaxonpolarity = {}
+        dictlen={}
+        dictdendritic={}
         for i in range(self.ROWS):
             for j in range(self.COLS):
-                #if imax<len(self.neurons[i,j].axon.synapses):
-                #    imax = len(self.neurons[i, j].axon.synapses)
-                #print(i,j,len(self.neurons[i, j].axon.synapses))
+                #print("R,C",i,j)
+                axon=self.neurons[i,j].axon
+                if(len(axon.synapses)==0):
+                    continue
 
-                #if len(self.neurons[i, j].axon.synapses)<10:#
-                #    print (len(self.neurons[i, j].axon.synapses))
-                #    continue
-                print("R,C",i,j)
-                self.thinkneuron(self.neurons[i, j])
+                for s in axon.synapses:
+                    axonpolarity = (axon, s.polarity)
+                    if (axonpolarity in dictaxonpolarity):
+                        dictaxonpolarity[axonpolarity].append(s.dendritic)
+                    else:
+                        dictaxonpolarity[axonpolarity] = [s.dendritic]
+                dictlen[str(set(dictaxonpolarity[axonpolarity]))]=len(dictaxonpolarity[axonpolarity])
+                dictdendritic[str(set(dictaxonpolarity[axonpolarity]))]=set(dictaxonpolarity[axonpolarity])
 
- #       for nplm in self.pallium:
+        #print(dictlen.values())
+        list1 = sorted(dictlen.items(), key=lambda x: x[1],reverse=True)
+        #print(list1)
+        for (k,v) in list1:
+            if(v<=1):
+                break
+            #print("trees:",v)
+            ds=dictdendritic[k]
+            axonpolarity=[]
+            n=neuron()
+            for ap in dictaxonpolarity:
+                if set(dictaxonpolarity[ap])==ds:
+                    axonpolarity.append(ap)
+                    n.dendritic.connectfrom(ap[0],ap[1])
+                    for d in ds:
+                        d.disconnectfrom(ap[0])
+
+            #print(v,len(axonpolarity),axonpolarity)
+            if len(axonpolarity)==1:
+                for d in ds:
+                    d.connectfrom(n.dendritic.synapses[0].axon, ap[1])
+                del n
+            else:
+                self.pallium.append(n)
+                for d in ds:
+                    d.connectfrom(n.axon, ap[1])
+
+    #       for nplm in self.pallium:
  #           isFirst = True
  #           for s in nplm.axon.synapses:
  #               ns = []
@@ -417,8 +506,6 @@ class opticnerve:
     def predict(self, img):
         nmax = self.look(img)
         if(nmax !=None):
-            while nmax.axon.outneurons==[]:
-                nmax=nmax.axon.synapses[0].dendritic.connectedNeuron
             return nmax.axon.outneurons[0].label
         else:
             return None

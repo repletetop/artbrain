@@ -5,38 +5,15 @@ from hzk import *
 from mnistdatabin import *
 
 def test28x28():
-    allhz=hzk()
-    i0=hz2img(allhz[0])
-    i1=hz2img(allhz[1])
-    i2=hz2img(allhz[2])
-    i3=hz2img(allhz[3])
-    i4=hz2img(allhz[4])
-    i5=hz2img(allhz[5])
-    i6=hz2img(allhz[6])
-    i7=hz2img(allhz[7])
-    i8=hz2img(allhz[8])
-    i9=hz2img(allhz[9])
-    #print(i1)
+    #allhz=hzk()
+    #i0=hz2img(allhz[0])
 
 
     on = opticnerve(28,28)
     #on.load()
     #on.remember(i0, 0)
-    #on.remember(i1, 1)
-    #on.remember(i2, 2)
-    #on.remember(i3, 3)
-    #on.remember(i4, 4)
-    #on.remember(i5, 5)
-    #on.remember(i6, 6)
-    #on.remember(i7, 7)
-    #on.remember(i8, 8)
-    #on.remember(i9, 9)
 
-    #print(on.knowledges)
-    #print(on.neurons[0,0].axon.synapses)
-    #print(len(on.pallium[0].dendritic.synapses))
-    #lb=on.predict(i2)
-    #print(lb)
+
 
     #timages = load_train_images()
     #tlabels = load_train_labels()
@@ -47,10 +24,11 @@ def test28x28():
 
     import time
     a=time.time()
-    batchs=[100]#''',400,500'''
+    TCNT=500#17
+    batchs=[TCNT]#''',400,500'''
     for n in range(len(batchs)):
         for i in range(batchs[n]):
-            if(i==9):
+            if(i==16):
                 b=0
                 pass
             on.remember(images[:,i].reshape(28,28), labels[i])
@@ -70,8 +48,9 @@ def test28x28():
         total=0
         ok=0
         b = time.time()
-        for i in range(5000,5100):
+        for i in range(000,000+TCNT):
             img = images[:, i].reshape(28, 28)
+            #pltshow(img)
             lb=on.predict(img)
             #print(labels[i],lb)
             total = total+1
@@ -79,6 +58,8 @@ def test28x28():
                 ok=ok+1
             else:
                 print(i," label:" ,labels[i]," pre:", lb)
+                for act in on.actived:
+                    print(act.axon.outneurons[0].label,)
                 #pltshow(img)
                 #print("====")
                 pass
@@ -176,7 +157,8 @@ def test3x3():
     on.remember(img1,"|")
     on.remember(img2,'-')
     on.remember(img3,'+')
-    lbs = on.predict(img7)
+    #on.think()  # too slow
+    lbs = on.predict(img4)
     #lbs = on.predict(img8)
     print(lbs)
     #on.recall('-')

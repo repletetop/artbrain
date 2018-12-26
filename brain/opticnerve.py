@@ -186,37 +186,30 @@ class opticnerve:
             self.actived=[]
             return None
 
+        self.reset()
+        self.input(img)
         for n in self.pallium:
             n.calcValue()
 
         vmax=0
         nmax=None
-        for k,v in self.knowledges:
-            if vmax<v.value:
-                vmax=v.value
-                nmax=v
-
-        vmax=self.actived[0].dendritic.value
-        nmax=self.actived[0]
-        for n in self.actived[1:]:
-            #print(n.axon.outneurons[0].label,end=" ")
-            if n.dendritic.value>vmax:
-                vmax = n.dendritic.value
-                nmax=n
+        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
+        nmax=list1[0][1]# may be mut, not top, how can i do? = .value=28*28
+        #for k,v in self.knowledges.items():
+        #    if vmax<v.value:
+        #        vmax=v.value
+        #        nmax=v
+        #if nmax.value==self.NEURONSCOUNT:
+        #    return nmax
+        #else:
+        #    return None
         return nmax
 
-        #vmax=self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)
-        #nmax=self.actived[0]
-        #for n in self.actived[1:]:
-        #    if self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)>vmax:
-        #        vmax = self.actived[0].dendritic.value/len(self.actived[0].dendritic.synapses)
-        #        nmax=n
-        #return nmax
     @with_goto
     def train(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
-            if(i==16):
+            if(i==9):
                 b=0
                 pass
             self.remember(imgs[i],labels[i])
@@ -224,6 +217,8 @@ class opticnerve:
 
         label .testlabel
         for i in range(imgs.shape[0]):
+            if(i==7):
+                b=0
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
                 print("predict error,remember again.")
@@ -236,7 +231,7 @@ class opticnerve:
         nmax = self.look(img)  # found mutipy?
         #remember every thing diffrence
         if (nmax!=None):
-            lb=nmax.axon.outneurons[0].label
+            lb=nmax.label
             #if lb==label and self.times<=1:
             if lb == label: #allow mistake ,train twice
                 return
@@ -414,6 +409,7 @@ class opticnerve:
         dictaxonpolarity = {}
         dictlen = {}
         dictdendritic = {}
+        dictset={}
         for i in range(self.ROWS):
             for j in range(self.COLS):
                 # print("R,C",i,j)
@@ -427,23 +423,28 @@ class opticnerve:
                         dictaxonpolarity[axonpolarity].append(s.dendritic)
                     else:
                         dictaxonpolarity[axonpolarity] = [s.dendritic]
-        for (axon, polarity) in dictdendritic:
+        for axonpolarity in dictaxonpolarity:
             dictlen[str(set(dictaxonpolarity[axonpolarity]))] = len(set(dictaxonpolarity[axonpolarity]))
             dictdendritic[str(set(dictaxonpolarity[axonpolarity]))] = set(dictaxonpolarity[axonpolarity])
-            if str(set(dictaxonpolarity[axonpolarity])) in dictdendritic:
-                dictset[str(set(dictaxonpolarity[axonpolarity]))].append((axon,polarity))
+            if str(set(dictaxonpolarity[axonpolarity])) in dictset:
+                dictset[str(set(dictaxonpolarity[axonpolarity]))].append(axonpolarity)
             else:
-                dictset[str(set(dictaxonpolarity[axonpolarity]))] = [(axon, polarity)]
+                dictset[str(set(dictaxonpolarity[axonpolarity]))] = [axonpolarity]
 
         list1 = sorted(dictlen.items(), key=lambda x: x[1], reverse=True)
         # print(list1)
         for (k, v) in list1: #
-            if (v <= 4):# 4: 2*4s+4d => 2s+1d+4s+1d+1n
+            #v=dendrtic cnt
+            if (v < 2):# 4: 2*4s+4d => 2s+1d+4s+1d+1n
                 break
+            ncnt=len(dictset[k])
+            if(ncnt<2):# dendritic must have up 2 synapses
+                continue
+            if(ncnt*v<8):
+                continue
+
             ds = dictdendritic[k]
             dset=dictset[k]
-            if(len(ds)<=1):# dendritic must have up 2 synapses
-                continue
 
             n = neuron()
             self.pallium.append(n)
@@ -453,9 +454,22 @@ class opticnerve:
             for d in ds:
                 d.connectfrom(n.axon,1)
                 for (axon, polarity) in dset:
-                    d.disconnectfrom(axon)
+                    d.disconnectfrom(axon,polarity)
+        self.sortpallium()
 
-
+    def sortpallium(self):
+        v=[]
+        while len(self.pallium)>0:
+            for n in self.pallium:
+                hasin=False
+                for s in n.dendritic.synapses:
+                    if s.axon.connectedNeuron in self.pallium:
+                        hasin = True
+                        break
+                if hasin == False:
+                    v.append(n)
+                    self.pallium.remove(n)
+        self.pallium=v
 
 
     def think_mostlettercommon(self):#think most letter comm
@@ -592,7 +606,7 @@ class opticnerve:
     def predict(self, img):
         nmax = self.look(img)
         if(nmax !=None):
-            return nmax.axon.outneurons[0].label
+            return nmax.label
         else:
             return None
 

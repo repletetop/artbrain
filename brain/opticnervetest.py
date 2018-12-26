@@ -32,28 +32,26 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=100#17
+    TCNT=200#17
     batchs=[TCNT]#''',400,500'''
     for n in range(len(batchs)):
-        for n in range(0,TCNT,100):
-            print("Training ",n,n+100)
-            on.train(imagesT[n:n+100],labels[n:n+100])
+        on.train(imagesT[0:TCNT],labels[0:TCNT])
 
-            on.status()
-            #on.think()  # too slow
-            print("After think:",end=" ")
-            on.status()
+        on.status()
+        on.think()  # too slow
+        print("After think:",end=" ")
+        on.status()
 
-            fn="on%d.sav"%(n)
-            print("Save file %s..."%(fn))
-            sv=shelve.open(fn)
-            sv['on']=on
-            sv.close()
+        #fn="on%d.sav"%(n)
+        #print("Save file %s..."%(fn))
+        #sv=shelve.open(fn)
+        #sv['on']=on
+        #sv.close()
 
         total=0
         ok=0
         b = time.time()
-        for i in range(000,000+100):
+        for i in range(000,000+TCNT):
             img = images[:, i].reshape(28, 28)
             #pltshow(img)
             lb=on.predict(img)

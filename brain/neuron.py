@@ -37,8 +37,8 @@ class dendritic:
         for s in self.synapses:
             if s.axon==axon and s.polarity==polarity:
                 self.disconnect(s)
-            else:
-                print("disconnect not found!")
+                return
+        print("disconnect not found!")
 
 
 
@@ -80,7 +80,8 @@ class neuron:
                 v=v+int(not s.axon.connectedNeuron.value)
         self.value=v
         for n in self.axon.outneurons:
-            n.value=v
+            if n.value < v:
+                n.value=v
 
 
     def conduct(self,actived):  # step 0

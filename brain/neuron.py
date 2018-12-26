@@ -33,10 +33,12 @@ class dendritic:
         self.synapses.remove(ss)
         ss.axon.synapses.remove(ss)
         del ss
-    def disconnectfrom(self,axon):
+    def disconnectfrom(self,axon,polarity):
         for s in self.synapses:
-            if s.axon==axon:
+            if s.axon==axon and s.polarity==polarity:
                 self.disconnect(s)
+            else:
+                print("disconnect not found!")
 
 
 
@@ -68,8 +70,7 @@ class neuron:
 
     def calcValue(self):  # zhenghe only 0,1  actived deactived
         for axon in self.inaxon:
-            self.dendritic.value = len(self.dendritic.synapses)
-            self.value = 1
+            self.value = len(self.dendritic.synapses)
             return
         v=0
         for s in self.dendritic.synapses:
@@ -77,19 +78,10 @@ class neuron:
                 v=v+s.axon.connectedNeuron.value
             else:
                 v=v+int(not s.axon.connectedNeuron.value)
-        self.dendritic.value=v
-        if( v == len (self.dendritic.synapses)):
-            self.value=1
-        else:
-            self.value=0
+        self.value=v
+        for n in self.axon.outneurons:
+            n.value=v
 
-
-        # print(self.dendritic)
-        #if (self.dendritic.value>0 and self.dendritic.value == len(self.dendritic.synapses)):#all synapses activte
-        #    self.value += 1
-            # for axon in self.outaxon:
-        #else:#part active ,use max one#############
-        #    self.value = 0
 
     def conduct(self,actived):  # step 0
         # self.axon.conduct() #step 1
@@ -117,25 +109,22 @@ class neuron:
             else:
                 s.dendritic.value += nv#0=>1 1=>0
             if( s.dendritic.value>=len(s.dendritic.synapses)):
-                s.dendritic.connectedNeuron.value=1
+                s.dendritic.connectedNeuron.value=s.dendritic.value
                 #if hasattr(s.dendritic.connectedNeuron,'label'):
                 #    print (s.dendritic.connectedNeuron.label)
                 s.dendritic.connectedNeuron.conduct(actived)
 
-        # back send
-        #if self.axon.synapses != []:
-        #    self.value = 0
-            # self.dendritic.value=0
-        # reduce shengjindizhi
+
     def recall(self):
-        self.value=1
         ss=self.dendritic.synapses
         if(ss!=[]):
             for s in self.dendritic.synapses:
+                if s.polarity>0:
+                    s.axon.connectedNeuron.value = 1
+                else:
+                    s.axon.connectedNeuron.value = 0
                 s.axon.connectedNeuron.recall()
             return
-        #if self.inaxon != []:
-        #    self.inaxon[0].connectedNeuron.recall()
         return
 
 

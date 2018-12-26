@@ -1,11 +1,25 @@
 #-*-coding:utf-8-*-
 
-from opticnerve import *
+from tfopticnerve import *
 from hzk import *
 from mnistdatabin import *
 from goto import with_goto
 import shelve
 import os
+import tensorflow as tf
+
+tf.device('/cpu:0')
+#a = tf.constant([1.,2.],name="a")
+#b = tf.constant([2.0,3.0],name="b")
+#result = tf.add(a,b,name="add")
+    # 创建session
+#sess = tf.Session()
+    #获取运算结果
+#a=sess.run(result)
+#print (a)
+    #关闭会话,释放资源
+#sess.close()
+#exit(1)
 
 def test28x28():
     #allhz=hzk()

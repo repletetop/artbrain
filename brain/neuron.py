@@ -98,10 +98,6 @@ class neuron:
 
 
     def conduct(self,actived):  # step 0
-        # self.axon.conduct() #step 1
-        # self.calcValue()
-        if self.value==0 :
-            return
         #for n in self.axon.outneurons:
         #    n.value=1
         #    #print (n.label)
@@ -111,9 +107,10 @@ class neuron:
         #if hasattr(self,'label'):
         #    if not self in actived:
         #        actived.append(self)
-        if self.axon.outneurons!=[]:
-            if not self in actived:
-                actived.append(self)
+        if self.actived:
+            if self.axon.outneurons!=[]:
+                if not self in actived:
+                    actived.append(self)
 
         v=self.value
         nv=int(not v)
@@ -123,9 +120,8 @@ class neuron:
             else:
                 s.dendritic.value += nv#0=>1 1=>0
             if( s.dendritic.value>=len(s.dendritic.synapses)):
-                s.dendritic.connectedNeuron.value=s.dendritic.value
-                #if hasattr(s.dendritic.connectedNeuron,'label'):
-                #    print (s.dendritic.connectedNeuron.label)
+                s.dendritic.connectedNeuron.value=1
+                s.dendritic.connectedNeuron.actived=True
                 s.dendritic.connectedNeuron.conduct(actived)
 
 

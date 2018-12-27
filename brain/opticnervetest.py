@@ -34,14 +34,14 @@ def test28x28():
             imagesT[i]=on.center(imagesT[i])
         np.save('testimgcenter.npy',imagesT)
 
-    img=imagesT[0]
+    #img=imagesT[0]
     #pltshow(img)
-    img = on.feel(img)
+    #img = on.feel(img)
     #img = on.conv(img)
     #pltshow(img)
     #img = on.feel(img)
     #pltshow(img)
-    exit(0)
+    #exit(0)
     #img = on.sdr(img)
     #pltshow(img)
     #img = on.conv(img)
@@ -55,7 +55,7 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=200#17
+    TCNT=2#17
     batchs=[TCNT]#''',400,500'''
     for n in range(len(batchs)):
         on.train(imagesT[0:TCNT],labels[0:TCNT])
@@ -74,7 +74,7 @@ def test28x28():
         total=0
         ok=0
         b = time.time()
-        for i in range(5000,5000+100):
+        for i in range(0,TCNT):
             img = imagesT[i]
             #pltshow(img)
             lb=on.predict(img)

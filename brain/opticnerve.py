@@ -46,13 +46,15 @@ class opticnerve:
     def __init__(self, ROWS, COLS):
         self.neurons = np.array([[neuron() for ii in range(COLS)]
                                  for jj in range(ROWS)])  # brains
-        self.pallium=[] # 促发记忆主要由大脑皮层控制
+        self.infrneurons=[] # inference neurons
+        self.pallium=[] #for memory促发记忆主要由大脑皮层控制
         self.knowledges = {}
         self.dendritics = []
         self.COLS = COLS
         self.ROWS = ROWS
         self.NEURONSCOUNT = ROWS * COLS
         self.createfeellayers()
+
 
     def save(self):  #
         d = shelve.open("opticnv")
@@ -241,9 +243,9 @@ class opticnerve:
                     n.value = 1
                     n.actived = True
                     cimg[i, j] = 1  # n.dendritic.value
-            pltshow(cimg)
+            #pltshow(cimg)
+            #print(cimg)
 
-        return cimg
 
 
     def feel_org(self, img):
@@ -387,7 +389,7 @@ class opticnerve:
             if(i==9):
                 b=0
                 pass
-            self.remember(imgs[i],labels[i])
+            self.learn(imgs[i],labels[i])
 
 
         label .testlabel
@@ -400,60 +402,75 @@ class opticnerve:
                 self.remember(imgs[i],labels[i])
                 goto .trainlabel
 
+    def inference(self):
+        if len(self.knowledges) == 0:
+            self.actived = []
+            return None
+
+        for layer in range(len(self.layers),0,-1):
+            for n in layer:
+                n.conduct(self.actived)
+            #test label
+
+        for n in self.pallium:
+            n.calcValue()
+
+        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
+        nmax = list1[0][1]  # may be mut, not top, how can i do? = .value=28*28
+        return nmax
+
+    def learn(self, img, label):
+        self.feel(img)
+        #inference
+        self.actived=[]
+        for i in range(1,len(self.layers)):
+            layer=self.layers[-i]
+            R, C = layer.shape
+            for r in range(R):
+                for c in range(C):
+                    layer[r, c].conduct(self.actived)
+
+
+            #if found actived label already in,return
+            #else if found actived but not it history need renew and remember this label
+            #else :no actived, add memory
+            if(self.actived==[]):
+                if (self.knowledges.__contains__(label)):
+                    # print("Already in,create dendritic only", label)
+                    nlb = self.knowledges[label]
+                    n=neuron()
+                    self.pallium.append(n)
+                    nlb.inaxon.append(n)
+                    n.axon.outneurons.append(nlb)
+                    d=n.dendritic
+                else:
+                    nlb = neuron()
+                    self.knowledges[label]=nlb
+                    nlb.label=label
+                    n=neuron()
+                    #n.memory
+                    #m=self.remember(img,label)
+                    #n.memory=m
+                    self.infrneurons.append(n)
+                    nlb.inaxon.append(n)
+                    n.axon.outneurons.append(nlb)
+                    d=n.dendritic
+                #
+                #1.remember this
+                #R,C=layer.shape
+                for r in range(R):
+                    for c in range(C):
+                        n=layer[r,c]
+                        d.connectfrom(n.axon,n.value)
+                break# out
+            else:
+                print(len(self.actived))
+                #Errs
+
+
 
     def remember(self, img, label):
-        img=self.feel(img)
-        nmax = self.look(img)  # found mutipy?
-        #remember every thing diffrence
-        if (nmax!=None):
-            lb=nmax.label
-            #if lb==label and self.times<=1:
-            if lb == label: #allow mistake ,train twice
-                return
-
-        if (self.knowledges.__contains__(label)):
-            # print("Already in,create dendritic only", label)
-            nlb = self.knowledges[label]
-            n=neuron()
-            self.pallium.append(n)
-            nlb.inaxon.append(n)
-            n.axon.outneurons.append(nlb)
-            d=n.dendritic
-        else:
-            nlb = neuron()
-            self.knowledges[label]=nlb
-            nlb.label=label
-            n=neuron()
-            self.pallium.append(n)
-            nlb.inaxon.append(n)
-            n.axon.outneurons.append(nlb)
-            d=n.dendritic
-
-
-        #imgleft=self.output()
-        #if(imgleft.sum()==0 and len(self.positive)>0):
-        #    for pn in self.positive:
-        #        dnpt.connectfrom(pn.axon, 1)
-        #        #pn.recall()
-        #        #print(self.output())
-        #    r, c = img.shape
-        #    for i in range(r):
-        #        for j in range(c):
-        #            if (img[i][j] == 0):  # negative
-        #                dn.connectfrom(self.neurons[i, j].axon, -1)
-        #    return
-
-        r, c = img.shape
-        for i in range(r):
-            for j in range(c):
-                if (img[i][j] > 0):#positive
-                    d.connectfrom(self.neurons[i, j].axon, 1)
-                else:#negative
-                    d.connectfrom(self.neurons[i, j].axon, -1)
-
-
-    def remember_org(self, img, label):
-        img=self.sdr(img)
+        #img=self.sdr(img)
         nmax = self.look(img)  # found mutipy?
         #remember every thing diffrence
         if (nmax!=None):

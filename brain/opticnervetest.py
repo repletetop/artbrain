@@ -11,23 +11,46 @@ def test28x28():
     #allhz=hzk()
     #i0=hz2img(allhz[0])
 
-    #if os.path.exists('on200.sav.dat'):
-    #    sv=shelve.open('on200.sav')
-    #    on=sv['on']
-    #    sv.close()
-    #else:
-    on = opticnerve(28,28)
-
-
+    if os.path.exists('on2001s.sav.dat'):
+        print("Loading on200.sav not run on.__init__  !!!")
+        sv=shelve.open('on200.sav')
+        on=sv['on']
+        sv.close()
+        on.status()
+    else:
+        on = opticnerve(28,28)
 
 
     #timages = load_train_images()
     #tlabels = load_train_labels()
-    images = load_test_images()
     labels = load_test_labels()
-    sp=images.shape
-    imagesT=images.T.reshape(sp[1],28,28)
-    img=images[:,0].reshape(28,28)
+    if os.path.exists("testimgcenter.npy"):
+        imagesT=np.load('testimgcenter.npy')
+    else:
+        images = load_test_images()
+        sp=images.shape
+        imagesT=images.T.reshape(sp[1],28,28)
+        for i in range(len(imagesT)):
+            imagesT[i]=on.center(imagesT[i])
+        np.save('testimgcenter.npy',imagesT)
+
+    img=imagesT[0]
+    #pltshow(img)
+    img = on.feel(img)
+    #img = on.conv(img)
+    #pltshow(img)
+    #img = on.feel(img)
+    #pltshow(img)
+    exit(0)
+    #img = on.sdr(img)
+    #pltshow(img)
+    #img = on.conv(img)
+    #pltshow(img)
+    #img = on.sdr(img)
+    #pltshow(img)
+    #img = on.conv(img)
+    #pltshow(img)
+    #exit(1)
 
     import time
     sys.setrecursionlimit(1000000) #for shelve
@@ -38,21 +61,21 @@ def test28x28():
         on.train(imagesT[0:TCNT],labels[0:TCNT])
 
         on.status()
-        on.think()  # too slow
-        print("After think:",end=" ")
+        on.reform()  # too slow
+        print("After reform:",end=" ")
         on.status()
 
-        #fn="on%d.sav"%(n)
-        #print("Save file %s..."%(fn))
-        #sv=shelve.open(fn)
-        #sv['on']=on
-        #sv.close()
+        fn="on%d.sav"%(TCNT)
+        print("Save file %s..."%(fn))
+        sv=shelve.open(fn)
+        sv['on']=on
+        sv.close()
 
         total=0
         ok=0
         b = time.time()
-        for i in range(000,000+TCNT):
-            img = images[:, i].reshape(28, 28)
+        for i in range(5000,5000+100):
+            img = imagesT[i]
             #pltshow(img)
             lb=on.predict(img)
             #print(labels[i],lb)
@@ -60,11 +83,11 @@ def test28x28():
             if(labels[i]==lb):
                 ok=ok+1
             else:
-                print("")
+                #print("")
                 print(i," label:" ,labels[i]," pre:", lb)
-                for act in on.actived:
-                    print(act.axon.outneurons[0].label,end=" ")
-                pltshow(img)
+                #for act in on.actived:
+                #    print(act.axon.outneurons[0].label,end=" ")
+                #pltshow(img)
                 #print("====")
                 pass
 
@@ -133,6 +156,12 @@ def test28x28():
 #200  67
 #300  73
 #5000 95%
+
+#after center:
+#200 73%
+#1000 86%
+#2000 82%
+
 
 #speed 100,6.47
 #calc by neuron 100,0.93

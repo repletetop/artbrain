@@ -64,9 +64,21 @@ class neuron:
     def __init__(self):
         self.value = 0
         self.dendritic = dendritic(self)  # axon-dendritic
+        self.indendritics = [] #dendritic-dendritic ,get Max one actived
+        self.nagativeaxons = [] # axon-axon hengxiang nagative
         self.inaxon = []  # axon->neuron
         self.axon = axon(self)  # output axon
+        self.actived = False
+
         return
+    def calcDendritic(self):
+        v=0
+        for s in self.dendritic.synapses:
+            if(s.polarity>0):
+                v=v+s.axon.connectedNeuron.value
+            else:
+                v=v+int(not s.axon.connectedNeuron.value)
+        self.dendritic.value=v
 
     def calcValue(self):  # zhenghe only 0,1  actived deactived
         for axon in self.inaxon:
@@ -78,6 +90,7 @@ class neuron:
                 v=v+s.axon.connectedNeuron.value
             else:
                 v=v+int(not s.axon.connectedNeuron.value)
+        self.dendritic.value=v
         self.value=v
         for n in self.axon.outneurons:
             if n.value < v:

@@ -61,8 +61,13 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=120#17
+    TCNT=110#120#17
     batchs=[TCNT]#''',400,500'''
+
+#    for i in range(TCNT):
+#        if labels[i] not in [1, 3, 2]:
+#            continue
+
     for n in range(len(batchs)):
         on.train(imagesT[0:TCNT],labels[0:TCNT])
 
@@ -71,16 +76,16 @@ def test28x28():
         print("After reform:",end=" ")
         on.status()
 
-        fn="on%d.sav"%(TCNT)
-        print("Save file %s..."%(fn))
-        sv=shelve.open(fn)
-        sv['on']=on
-        sv.close()
+        #fn="on%d.sav"%(TCNT)
+        #print("Save file %s..."%(fn))
+        #sv=shelve.open(fn)
+        #sv['on']=on
+        #sv.close()
 
         total=0
         ok=0
         b = time.time()
-        for i in range(0,TCNT):
+        for i in range(000,000+TCNT):
             img = imagesT[i]
             #pltshow(img)
             lb=on.predict(img)

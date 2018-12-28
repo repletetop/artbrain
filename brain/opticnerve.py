@@ -396,6 +396,8 @@ class opticnerve:
     def train(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
+            #if labels[i] not in [1,3,2]:
+            #    continue
             if(i==40):
                 b=0
                 pass
@@ -417,13 +419,15 @@ class opticnerve:
 
         label .testlabel
         for i in range(imgs.shape[0]):
+            #if labels[i] not in [1,3,2]:
+            #    continue
             if(i==7):
                 b=0
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
                 print(i,"Error: %s predict %s ,learn again "%(labels[i],lb))
                 #print("May by 2 yi")
-                pltshow(imgs[i])
+                #pltshow(imgs[i])
 
                 self.learn(imgs[i],labels[i])
                 goto .trainlabel
@@ -475,21 +479,27 @@ class opticnerve:
                 break# out
             else:
                 #print(len(self.actived))
-                act=self.actived[lenactived]
-                lenactived = lenactived+1
-                if len(act.axon.outneurons)==1 \
-                    and act.axon.outneurons[0].label==label: #found
-                    nhistory=self.remember(img,label)
-                    if nhistory not in self.actived[0].memory:
-                        self.actived[0].memory.append(nhistory)
-                    del(newn)
-                    #self.actived[0].memory.append(img)
-                    break
-                if len(act.axon.outneurons)==1 and len(act.memory)>0:
-                    #memory need renew
-                    alike.append(act)
-                if nlb not in act.axon.outneurons:
-                    act.axon.outneurons.append(nlb)
+                #actived new one
+                if len(self.actived)==lenactived+1:
+                    act = self.actived[lenactived]
+                    #and it has one outneurons  and label is me
+                    if len(act.axon.outneurons) == 1 \
+                            and act.axon.outneurons[0].label == label:  # found
+                        nhistory = self.remember(img, label)
+                        if nhistory not in self.actived[0].memory:
+                            self.actived[0].memory.append(nhistory)
+                        del (newn)
+                        # self.actived[0].memory.append(img)
+                        break
+                #other else renew memory
+                for ia in range(lenactived,len(self.actived)):
+                    act = self.actived[ia]
+                    if len(act.axon.outneurons)==1 and len(act.memory)>0:
+                        #memory need renew
+                        alike.append(act)
+                    if nlb not in act.axon.outneurons:
+                        act.axon.outneurons.append(nlb)
+                lenactived = len(self.actived)
 
         return alike
 

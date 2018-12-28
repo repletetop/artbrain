@@ -87,8 +87,6 @@ class opticnerve:
         for n in self.pallium:
             n.value=0
             n.dendritic.value=0
-        for n in self.infrneurons:#
-            n.dendritic.value=0
 
         self.positive = []
 
@@ -209,6 +207,8 @@ class opticnerve:
 
     def feel(self, img):
         self.input(img)
+        for n in self.infrneurons:#
+            n.dendritic.value=0
 
         for layer in self.layers:
             ROWS,COLS=layer.shape
@@ -401,6 +401,8 @@ class opticnerve:
                 pass
             alike = self.learn(imgs[i],labels[i])
             while len(alike)>0:
+                print("")
+                print("alikes:[",len(alike),end="]   ")
                 for a in alike:
                     mems = a.memory.copy()
                     a.memory.clear()
@@ -409,6 +411,7 @@ class opticnerve:
                         self.clearneurons()
                         n.reappear()
                         img = self.output()
+                        print(labels[i],"like", n.axon.outneurons[0].label,end=" ")
                         nalike = self.learn(img, n.axon.outneurons[0].label)
                         alike=alike+nalike
 
@@ -418,7 +421,10 @@ class opticnerve:
                 b=0
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
-                print("Error: %s predict %s ,learn again "%(labels[i],lb))
+                print(i,"Error: %s predict %s ,learn again "%(labels[i],lb))
+                #print("May by 2 yi")
+                pltshow(imgs[i])
+
                 self.learn(imgs[i],labels[i])
                 goto .trainlabel
 
@@ -479,16 +485,12 @@ class opticnerve:
                     del(newn)
                     #self.actived[0].memory.append(img)
                     break
-                if nlb not in act.axon.outneurons:
-                    act.axon.outneurons.append(nlb)
-                    #have actived but not this label, need renew
-                    #act has other knowledge
-                if len(act.memory)>0:
+                if len(act.axon.outneurons)==1 and len(act.memory)>0:
                     #memory need renew
                     alike.append(act)
-                    #for m in act.memory:
-                    #    alike.append((m))
-                    #act.memory.clear()
+                if nlb not in act.axon.outneurons:
+                    act.axon.outneurons.append(nlb)
+
         return alike
 
 
@@ -498,9 +500,12 @@ class opticnerve:
         #remember every thing diffrence
         if (nmax!=None):
             lb=nmax.axon.outneurons[0].label
-            #if lb==label and self.times<=1:
             if lb == label: #allow mistake ,train twice
                 return nmax
+            #if nmax.dendritic.value==self.ROWS*self.COLS:
+            #    return nmax
+            #else:
+            #    print(lb,label,nmax.dendritic.value)
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)

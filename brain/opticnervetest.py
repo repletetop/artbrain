@@ -36,6 +36,12 @@ def test28x28():
 
     #img=imagesT[0]
     #pltshow(img)
+    #on.remember(img,labels[0])
+    #on.clearneurons()
+    #on.pallium[0].reappear()
+    #a=on.output()
+    #spltshow(a)
+    #exit(1)
     #img = on.feel(img)
     #img = on.conv(img)
     #pltshow(img)

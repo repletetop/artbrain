@@ -184,9 +184,9 @@ class opticnerve:
                         n.nagativeaxons.append(layer[i + x, j + y].axon)
 
         # conv2
-        while ROWS>=6:
-            ROWS = ROWS // 3
-            COLS = COLS // 3
+        while ROWS>=4:
+            ROWS = ROWS // 2
+            COLS = COLS // 2
             lastlayer=layer
             layer = np.array([[neuron() for ii in range(COLS)]
                                     for jj in range(ROWS)])  # brains
@@ -197,7 +197,7 @@ class opticnerve:
                     # connect pre
                     for x in range(-1, 2):
                         for y in range(-1, 2):
-                            n.dendritic.connectfrom(lastlayer[3 * i + y, 3 * j + x].axon, 1)
+                            n.dendritic.connectfrom(lastlayer[2 * i + y, 2 * j + x].axon, 1)
                             if (x == 0 and y == 0):  # max
                                 continue
                             n.indendritics.append(layer[i + x, j + y].dendritic)
@@ -214,6 +214,7 @@ class opticnerve:
             for i in range(ROWS):
                 for j in range(COLS):
                     n = layer[i, j]
+                    n.value = 0
                     n.calcDendritic()
                     #if n.dendritic.value>0:
                     #    cimg[i, j] = 1
@@ -225,9 +226,11 @@ class opticnerve:
                     n = layer[i, j]
                     if n.indendritics == [] or n.dendritic.value == 0:
                         continue
+                    #list1 = sorted(n.indendritics, key=lambda v: v.value, reverse=True)
+                    #if n.dendritic.value >= list1[1].value:
                     vmax = max(n.indendritics, key=lambda v: v.value)
                     if n.dendritic.value >= vmax.value:
-                        n.value = n.dendritic.value
+                        n.value = 1
                         #cimg[i, j] = 1
             #pltshow(cimg)
             # sdr
@@ -237,9 +240,18 @@ class opticnerve:
                     n = layer[i, j]
                     if n.nagativeaxons == [] or n.value == 0:
                         continue
+                    #only one actived
                     vmax = max(n.nagativeaxons, key=lambda v: v.connectedNeuron.actived)
                     if vmax.connectedNeuron.actived:
                         continue
+                    #reserve 3 point
+                    #cnt=0
+                    #for ax in n.nagativeaxons:
+                    #    if ax.connectedNeuron.actived:
+                    #        cnt+=1
+                    #if cnt>=1:
+                    #    continue
+
                     n.value = 1
                     n.actived = True
                     cimg[i, j] = 1  # n.dendritic.value
@@ -359,27 +371,22 @@ class opticnerve:
                     self.neurons[i, j].conduct(self.actived)
 
     def look(self, img):  # get max overlap
-        if len(self.knowledges)==0:
+        if len(self.pallium)==0:
             self.actived=[]
             return None
 
         self.reset()
         self.input(img)
+        results=[]
         for n in self.pallium:
             n.calcValue()
+            if(n.axon.outneurons!=[]):
+                results.append(n)
 
-        vmax=0
-        nmax=None
-        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
-        nmax=list1[0][1]# may be mut, not top, how can i do? = .value=28*28
-        #for k,v in self.knowledges.items():
-        #    if vmax<v.value:
-        #        vmax=v.value
-        #        nmax=v
-        #if nmax.value==self.NEURONSCOUNT:
-        #    return nmax
-        #else:
-        #    return None
+
+        list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
+        nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
+
         return nmax
 
     @with_goto
@@ -389,8 +396,18 @@ class opticnerve:
             if(i==9):
                 b=0
                 pass
-            self.learn(imgs[i],labels[i])
-
+            alike = self.learn(imgs[i],labels[i])
+            while len(alike)>0:
+                for a in alike:
+                    mems = a.memory.copy()
+                    a.memory.clear()
+                    alike.remove(a)
+                    for n in mems:
+                        self.clearneurons()
+                        n.reappear()
+                        img = self.output()
+                        nalike = self.learn(img, n.axon.outneurons[0].label)
+                        alike=alike+nalike
 
         label .testlabel
         for i in range(imgs.shape[0]):
@@ -399,30 +416,26 @@ class opticnerve:
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
                 print("predict error,remember again.")
-                self.remember(imgs[i],labels[i])
+                #self.remember(imgs[i],labels[i])
                 goto .trainlabel
 
-    def inference(self):
-        if len(self.knowledges) == 0:
-            self.actived = []
-            return None
-
-        for layer in range(len(self.layers),0,-1):
-            for n in layer:
-                n.conduct(self.actived)
-            #test label
-
-        for n in self.pallium:
-            n.calcValue()
-
-        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
-        nmax = list1[0][1]  # may be mut, not top, how can i do? = .value=28*28
-        return nmax
 
     def learn(self, img, label):
         self.feel(img)
         #inference
         self.actived=[]
+        alike=[]
+
+        newn = neuron()
+        d = newn.dendritic
+        if (self.knowledges.__contains__(label)):
+            # print("Already in,create dendritic only", label)
+            nlb = self.knowledges[label]
+        else:
+            nlb = neuron()
+            self.knowledges[label] = nlb
+            nlb.label = label
+        lenactived=0
         for i in range(1,len(self.layers)):
             layer=self.layers[-i]
             R, C = layer.shape
@@ -434,39 +447,46 @@ class opticnerve:
             #if found actived label already in,return
             #else if found actived but not it history need renew and remember this label
             #else :no actived, add memory
-            if(self.actived==[]):
-                if (self.knowledges.__contains__(label)):
-                    # print("Already in,create dendritic only", label)
-                    nlb = self.knowledges[label]
-                    n=neuron()
-                    self.pallium.append(n)
-                    nlb.inaxon.append(n)
-                    n.axon.outneurons.append(nlb)
-                    d=n.dendritic
-                else:
-                    nlb = neuron()
-                    self.knowledges[label]=nlb
-                    nlb.label=label
-                    n=neuron()
-                    #n.memory
-                    #m=self.remember(img,label)
-                    #n.memory=m
-                    self.infrneurons.append(n)
-                    nlb.inaxon.append(n)
-                    n.axon.outneurons.append(nlb)
-                    d=n.dendritic
+            for r in range(R):
+                for c in range(C):
+                    n = layer[r, c]
+                    d.connectfrom(n.axon, n.value)
+
+            if(len(self.actived)==lenactived):
+                self.infrneurons.append(newn)
+                nlb.inaxon.append(newn)
+                newn.axon.outneurons.append(nlb)
+
+                #remember img,label , maybe already in memory
+                #newn.memory = [self.remember(img, label)]
+                newn.memory=[self.remember(img,label)]
                 #
                 #1.remember this
                 #R,C=layer.shape
-                for r in range(R):
-                    for c in range(C):
-                        n=layer[r,c]
-                        d.connectfrom(n.axon,n.value)
                 break# out
             else:
                 print(len(self.actived))
-                #Errs
-
+                act=self.actived[lenactived]
+                lenactived = lenactived+1
+                if len(act.axon.outneurons)==1 \
+                    and act.axon.outneurons[0].label==label: #found
+                    nhistory=self.remember(img,label)
+                    if nhistory not in self.actived[0].memory:
+                        self.actived[0].memory.append(nhistory)
+                    del(newn)
+                    #self.actived[0].memory.append(img)
+                    break
+                if nlb not in act.axon.outneurons:
+                    act.axon.outneurons.append(nlb)
+                    #have actived but not this label, need renew
+                    #act has other knowledge
+                if len(act.memory)>0:
+                    #memory need renew
+                    alike.append(act)
+                    #for m in act.memory:
+                    #    alike.append((m))
+                    #act.memory.clear()
+        return alike
 
 
     def remember(self, img, label):
@@ -474,10 +494,10 @@ class opticnerve:
         nmax = self.look(img)  # found mutipy?
         #remember every thing diffrence
         if (nmax!=None):
-            lb=nmax.label
+            lb=nmax.axon.outneurons[0].label
             #if lb==label and self.times<=1:
             if lb == label: #allow mistake ,train twice
-                return
+                return nmax
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
@@ -497,20 +517,6 @@ class opticnerve:
             n.axon.outneurons.append(nlb)
             d=n.dendritic
 
-
-        #imgleft=self.output()
-        #if(imgleft.sum()==0 and len(self.positive)>0):
-        #    for pn in self.positive:
-        #        dnpt.connectfrom(pn.axon, 1)
-        #        #pn.recall()
-        #        #print(self.output())
-        #    r, c = img.shape
-        #    for i in range(r):
-        #        for j in range(c):
-        #            if (img[i][j] == 0):  # negative
-        #                dn.connectfrom(self.neurons[i, j].axon, -1)
-        #    return
-
         r, c = img.shape
         for i in range(r):
             for j in range(c):
@@ -518,6 +524,7 @@ class opticnerve:
                     d.connectfrom(self.neurons[i, j].axon, 1)
                 else:#negative
                     d.connectfrom(self.neurons[i, j].axon, -1)
+        return n
 
     def reform(self):
         dictaxonpolarity = {}
@@ -598,17 +605,57 @@ class opticnerve:
         self.pallium=v
 
 
-    def predict(self, img):
-        img=self.sdr(img)
+    def inference(self):
+        if len(self.knowledges) == 0:
+            self.actived = []
+            return None
+
+        for layer in range(len(self.layers),0,-1):
+            for n in layer:
+                n.conduct(self.actived)
+            #test label
+
+        for n in self.pallium:
+            n.calcValue()
+
+        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
+        nmax = list1[0][1]  # may be mut, not top, how can i do? = .value=28*28
+        return nmax
+
+    def predict(self,img):#inference
+        self.feel(img)
+        for n in self.infrneurons:
+            n.dendritic.value=0
+
+        self.actived=[]
+        for i in range(1,len(self.layers)):
+            layer=self.layers[-i]
+            R, C = layer.shape
+            for r in range(R):
+                for c in range(C):
+                    layer[r, c].conduct(self.actived)
+
+            for a in self.actived:
+                if len(a.axon.outneurons)==1:
+                    return a.axon.outneurons[0].label
+
+            #if(len(self.actived)>0):
+            #    print(len(self.actived))
+            #    label=self.actived[0].axon.outneurons[0].label
+            #    break
+        return None
+
+    def recall(self, img):#recall from history
+        #img=self.sdr(img)
         nmax = self.look(img)
         if(nmax !=None):
-            return nmax.label
+            return nmax.axon.outneurons[0].label
         else:
             return None
 
-    def recall(self,label):
+    def reappear(self,label):
         n=self.knowledges[label]
-        n.recall()
+        n.reappear()
         img=self.output()
         print(img)
     def output(self):

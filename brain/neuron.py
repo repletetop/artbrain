@@ -111,6 +111,8 @@ class neuron:
             if self.axon.outneurons!=[]:
                 if not self in actived:
                     actived.append(self)
+                    #if len(self.axon.outneurons)==1:
+                    #    return self #founded
 
         v=self.value
         nv=int(not v)
@@ -125,16 +127,13 @@ class neuron:
                 s.dendritic.connectedNeuron.conduct(actived)
 
 
-    def recall(self):
-        ss=self.dendritic.synapses
-        if(ss!=[]):
-            for s in self.dendritic.synapses:
-                if s.polarity>0:
-                    s.axon.connectedNeuron.value = 1
-                else:
-                    s.axon.connectedNeuron.value = 0
-                s.axon.connectedNeuron.recall()
-            return
+    def reappear(self):
+        for s in self.dendritic.synapses:
+            if s.polarity > 0:
+                s.axon.connectedNeuron.value = 1
+                s.axon.connectedNeuron.reappear()
+            else:
+                s.axon.connectedNeuron.value = 0
         return
 
 

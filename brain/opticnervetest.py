@@ -61,7 +61,7 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=2#17
+    TCNT=40#17
     batchs=[TCNT]#''',400,500'''
     for n in range(len(batchs)):
         on.train(imagesT[0:TCNT],labels[0:TCNT])

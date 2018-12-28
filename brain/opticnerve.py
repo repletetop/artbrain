@@ -87,6 +87,8 @@ class opticnerve:
         for n in self.pallium:
             n.value=0
             n.dendritic.value=0
+        for n in self.infrneurons:#
+            n.dendritic.value=0
 
         self.positive = []
 
@@ -207,6 +209,7 @@ class opticnerve:
 
     def feel(self, img):
         self.input(img)
+
         for layer in self.layers:
             ROWS,COLS=layer.shape
 
@@ -393,7 +396,7 @@ class opticnerve:
     def train(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
-            if(i==9):
+            if(i==40):
                 b=0
                 pass
             alike = self.learn(imgs[i],labels[i])
@@ -415,8 +418,8 @@ class opticnerve:
                 b=0
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
-                print("predict error,remember again.")
-                #self.remember(imgs[i],labels[i])
+                print("Error: %s predict %s ,learn again "%(labels[i],lb))
+                self.learn(imgs[i],labels[i])
                 goto .trainlabel
 
 
@@ -436,7 +439,7 @@ class opticnerve:
             self.knowledges[label] = nlb
             nlb.label = label
         lenactived=0
-        for i in range(1,len(self.layers)):
+        for i in range(1,len(self.layers)+1):
             layer=self.layers[-i]
             R, C = layer.shape
             for r in range(R):
@@ -465,7 +468,7 @@ class opticnerve:
                 #R,C=layer.shape
                 break# out
             else:
-                print(len(self.actived))
+                #print(len(self.actived))
                 act=self.actived[lenactived]
                 lenactived = lenactived+1
                 if len(act.axon.outneurons)==1 \
@@ -624,11 +627,9 @@ class opticnerve:
 
     def predict(self,img):#inference
         self.feel(img)
-        for n in self.infrneurons:
-            n.dendritic.value=0
 
         self.actived=[]
-        for i in range(1,len(self.layers)):
+        for i in range(1,len(self.layers)+1):
             layer=self.layers[-i]
             R, C = layer.shape
             for r in range(R):

@@ -266,7 +266,7 @@ class opticnerve:
                 # if img[i, j]!=0:
                 self.layers[0][i, j].value = img[i, j]
 
-        pltshow(self.outputlayer(self.layers[0]))
+        #pltshow(self.outputlayer(self.layers[0]))
         for ilayer in range(1,len(self.layers)):
             layer=self.layers[ilayer]
             ROWS,COLS=layer.shape
@@ -453,33 +453,30 @@ class opticnerve:
     def train(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
-            #if labels[i] not in [1,3,2]:
-            #    continue
-            if(i==40):
+            if labels[i] not in [4,9,7]:
+                continue
+            if(i==9):
                 b=0
                 pass
-            alike = self.learn(imgs[i],labels[i])
+            alike = self.learn(imgs[i],labels[i]) #learn knowledge if confilict lost befor
             while len(alike)>0:
-                print("")
-                print("alikes:[",len(alike),end="]   ")
-                for a in alike:
-                    mems = a.memory.copy()
-                    a.memory.clear()
-                    alike.remove(a)
-                    for n in mems:
-                        self.clearneurons()
-                        n.reappear()
-                        img = self.output()
-                        print(labels[i],"like", n.axon.outneurons[0].label,end=" ")
-                        sys.stdout.flush()
-                        nalike = self.learn(img, n.axon.outneurons[0].label)
-                        alike=alike+nalike
+                ca=alike.copy()
+                alike.clear()
+                for n in ca:
+                    self.clearneurons()
+                    n.reappear()
+                    img = self.output()
+                    print(labels[i],"like", n.axon.outneurons[0].label,end=" ")
+                    sys.stdout.flush()
+                    nalike = self.learn(img, n.axon.outneurons[0].label)
+                    alike=alike+nalike
 
         label .testlabel
+        ok =True
         for i in range(imgs.shape[0]):
-            #if labels[i] not in [1,3,2]:
-            #    continue
-            if(i==7):
+            if labels[i] not in [4,9,7]:
+                continue
+            if(i==9):
                 b=0
             lb=self.predict(imgs[i])
             if(labels[i]!=lb):
@@ -488,7 +485,10 @@ class opticnerve:
                 #pltshow(imgs[i])
 
                 self.learn(imgs[i],labels[i])
-                goto .trainlabel
+                ok = False
+
+        if ok==False:
+            goto .testlabel
 
 
     def learn(self, img, label):
@@ -507,8 +507,9 @@ class opticnerve:
             self.knowledges[label] = nlb
             nlb.label = label
         lenactived=0
-        for i in range(1,len(self.layers)+1):
-            layer=self.layers[-i]
+        for ilayer in range(1,len(self.layers)+1,2):#skip a lay ,only sdr
+            layer=self.layers[-ilayer]
+            #pltshow(self.outputlayer(layer))
             R, C = layer.shape
             for r in range(R):
                 for c in range(C):
@@ -554,15 +555,17 @@ class opticnerve:
                     act = self.actived[ia]
                     if len(act.axon.outneurons)==1 and len(act.memory)>0:
                         #memory need renew
-                        alike.append(act)
+                        alike = alike+act.memory
+                        act.memory.clear()
                     if nlb not in act.axon.outneurons:
                         act.axon.outneurons.append(nlb)
                 lenactived = len(self.actived)
 
-        if len(alike)>1 and i>len(self.layers):
+        if len(alike)>1 and ilayer>len(self.layers):
             print("same img have two diffrent labels!",len(alike))
 
-
+        #for a in alike:
+        #    a.memory.clear()
         return alike
 
 
@@ -706,7 +709,7 @@ class opticnerve:
         self.feel(img)
 
         self.actived=[]
-        for i in range(1,len(self.layers)+1):
+        for i in range(1,len(self.layers)+1,2):
             layer=self.layers[-i]
             R, C = layer.shape
             for r in range(R):

@@ -487,6 +487,7 @@ class opticnerve:
                 #pltshow(imgs[i])
 
                 self.learn(imgs[i],labels[i])
+                lb = self.predict(imgs[i])
                 ok = False
 
         if ok==False:
@@ -570,6 +571,10 @@ class opticnerve:
         #    a.memory.clear()
         return alike
 
+    def study(self,img,label):
+        n=self.predict(img)
+        if(n.label == label):
+            return
 
     def learn(self, img, label):#digui is slow
         self.feel(img)
@@ -600,7 +605,7 @@ class opticnerve:
             #for r in range(R):#too slowly
             #    for c in range(C):
             #        layer[r, c].conduct(self.actived)
-            for n in self.infrneurons[ilayer]:
+            for n in self.infrneurons[-ilayer]:
                 n.calcValue()
                 if n.dendritic.value>=len(n.dendritic.synapses):#actived
                     if n.axon.outneurons != []:
@@ -612,7 +617,7 @@ class opticnerve:
             #else :no actived, add memory
 
             if(len(self.actived)==lenactived):
-                self.infrneurons[ilayer].append(newn)
+                self.infrneurons[-ilayer].append(newn)
                 nlb.inaxon.append(newn)
                 newn.axon.outneurons.append(nlb)
 
@@ -816,18 +821,25 @@ class opticnerve:
         self.feel(img)
 
         self.actived=[]
+        alike=[]
         for ilayer in range(1,len(self.layers)+1,1):
             layer=self.layers[-ilayer]
 
             for n in self.infrneurons[-ilayer]:
                 n.calcValue()
+                if len(n.axon.outneurons) != 1:
+                    continue
+                alike.append(n)
                 if n.dendritic.value>=len(n.dendritic.synapses):#actived
-                    if n.axon.outneurons != []:
-                        self.actived.append(n)
+                    self.actived.append(n)
 
-            for a in self.actived:
-                if len(a.axon.outneurons)==1:
-                    return a.axon.outneurons[0].label
+        if len(self.actived)>0:
+            return self.actived[0].axon.outneurons[0].label
+        else:
+            print("Not found actived , get alike")
+            list1 = sorted(alike, key=lambda v: v.value, reverse=True)
+            return list1[0].axon.outneurons[0].label
+
 
             #if(len(self.actived)>0):
             #    print(len(self.actived))

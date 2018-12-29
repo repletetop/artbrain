@@ -34,8 +34,13 @@ def test28x28():
             imagesT[i]=on.center(imagesT[i])
         np.save('testimgcenter.npy',imagesT)
 
-    #img=imagesT[9]
+    #img=imagesT[0]
     #pltshow(img)
+    #on.learn(imagesT[0],labels[0])
+    #on.learn(imagesT[1],labels[1])
+    #n=on.predict(imagesT[2])
+    #print(n)
+    #exit(1)
     #on.remember(img,labels[0])
     #on.clearneurons()
     #on.pallium[0].reappear()
@@ -61,7 +66,7 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=500#13#120#17
+    TCNT=100#13#120#17
     batchs=[TCNT]#''',400,500'''
 
 #    for i in range(TCNT):
@@ -88,6 +93,8 @@ def test28x28():
         for i in range(000,000+TCNT):
             img = imagesT[i]
             #pltshow(img)
+            if i==9:
+                a=5
             lb=on.predict(img)
             #print(labels[i],lb)
             total = total+1

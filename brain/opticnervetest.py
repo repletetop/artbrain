@@ -34,7 +34,7 @@ def test28x28():
             imagesT[i]=on.center(imagesT[i])
         np.save('testimgcenter.npy',imagesT)
 
-    #img=imagesT[0]
+    img=imagesT[1]
     #pltshow(img)
     #on.remember(img,labels[0])
     #on.clearneurons()
@@ -45,9 +45,9 @@ def test28x28():
     #img = on.feel(img)
     #img = on.conv(img)
     #pltshow(img)
-    #img = on.feel(img)
+    img = on.feel(img)
     #pltshow(img)
-    #exit(0)
+    exit(0)
     #img = on.sdr(img)
     #pltshow(img)
     #img = on.conv(img)
@@ -61,7 +61,7 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=110#120#17
+    TCNT=120#120#17
     batchs=[TCNT]#''',400,500'''
 
 #    for i in range(TCNT):

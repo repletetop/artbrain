@@ -252,13 +252,15 @@ class opticnerve:
                         for y in range(2):
                             n.dendritic.connectfrom(lastlayer[2 * i + y, 2 * j + x].axon, 1)
 
+        self.infrneurons=[[] for i in range(len(self.layers))]
+
 
     def feeltimes(self,img):
         pass
 
     def feel(self, img):
-        for n in self.infrneurons:#
-            n.dendritic.value=0
+        #for n in self.infrneurons:#
+        #    n.dendritic.value=0
 
         r, c = img.shape
         for i in range(r):
@@ -453,8 +455,8 @@ class opticnerve:
     def train(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
-            if labels[i] not in [4,9,7]:
-                continue
+            #if labels[i] not in [4,9,7]:
+            #    continue
             if(i==9):
                 b=0
                 pass
@@ -474,8 +476,8 @@ class opticnerve:
         label .testlabel
         ok =True
         for i in range(imgs.shape[0]):
-            if labels[i] not in [4,9,7]:
-                continue
+            #if labels[i] not in [4,9,7]:
+            #    continue
             if(i==9):
                 b=0
             lb=self.predict(imgs[i])
@@ -491,7 +493,7 @@ class opticnerve:
             goto .testlabel
 
 
-    def learn(self, img, label):
+    def learn_org(self, img, label):#digui is slow
         self.feel(img)
         #inference
         self.actived=[]
@@ -507,7 +509,7 @@ class opticnerve:
             self.knowledges[label] = nlb
             nlb.label = label
         lenactived=0
-        for ilayer in range(1,len(self.layers)+1,2):#skip a lay ,only sdr
+        for ilayer in range(1,len(self.layers)+1,1):#skip a lay ,only sdr
             layer=self.layers[-ilayer]
             #pltshow(self.outputlayer(layer))
             R, C = layer.shape
@@ -568,6 +570,90 @@ class opticnerve:
         #    a.memory.clear()
         return alike
 
+
+    def learn(self, img, label):#digui is slow
+        self.feel(img)
+
+        self.actived=[]
+        alike=[]
+
+        newn = neuron()
+        d = newn.dendritic
+        if (self.knowledges.__contains__(label)):
+            # print("Already in,create dendritic only", label)
+            nlb = self.knowledges[label]
+        else:
+            nlb = neuron()
+            self.knowledges[label] = nlb
+            nlb.label = label
+        lenactived=0
+        for ilayer in range(1,len(self.layers)+1,1):#skip a lay ,only sdr
+            layer=self.layers[-ilayer]
+            #pltshow(self.outputlayer(layer))
+            R, C = layer.shape
+            for r in range(R):
+                for c in range(C):
+                    n = layer[r, c]
+                    d.connectfrom(n.axon, n.value)
+
+            #self.conductlayer(layer,self.actived)
+            #for r in range(R):#too slowly
+            #    for c in range(C):
+            #        layer[r, c].conduct(self.actived)
+            for n in self.infrneurons[ilayer]:
+                n.calcValue()
+                if n.dendritic.value>=len(n.dendritic.synapses):#actived
+                    if n.axon.outneurons != []:
+                        self.actived.append(n)
+
+
+            #if found actived label already in,return
+            #else if found actived but not it history need renew and remember this label
+            #else :no actived, add memory
+
+            if(len(self.actived)==lenactived):
+                self.infrneurons[ilayer].append(newn)
+                nlb.inaxon.append(newn)
+                newn.axon.outneurons.append(nlb)
+
+                #remember img,label , maybe already in memory
+                #newn.memory = [self.remember(img, label)]
+                newn.memory=[self.remember(img,label)]
+                #
+                #1.remember this
+                #R,C=layer.shape
+                break# out
+            else:
+                #print(len(self.actived))
+                #actived new one
+                if len(self.actived)==lenactived+1:
+                    act = self.actived[lenactived]
+                    #and it has one outneurons  and label is me
+                    if len(act.axon.outneurons) == 1 \
+                            and act.axon.outneurons[0].label == label:  # found
+                        nhistory = self.remember(img, label)
+                        if nhistory not in self.actived[0].memory:
+                            self.actived[0].memory.append(nhistory)
+                        del (newn)
+                        # self.actived[0].memory.append(img)
+                        break
+                #other else renew memory
+                for ia in range(lenactived,len(self.actived)):
+                    act = self.actived[ia]
+                    if len(act.axon.outneurons)==1 and len(act.memory)>0:
+                        #memory need renew
+                        alike = alike+act.memory
+                        act.memory.clear()
+                    if nlb not in act.axon.outneurons:
+                        act.axon.outneurons.append(nlb)
+                lenactived = len(self.actived)
+
+        if len(alike)>1 and ilayer>len(self.layers):
+            print("same img have two diffrent labels!",len(alike))
+
+        #for a in alike:
+        #    a.memory.clear()
+        return alike
 
     def remember(self, img, label):
         #img=self.sdr(img)
@@ -705,16 +791,39 @@ class opticnerve:
         nmax = list1[0][1]  # may be mut, not top, how can i do? = .value=28*28
         return nmax
 
-    def predict(self,img):#inference
+    def predict_org(self, img):  # inference digui is slow
         self.feel(img)
 
-        self.actived=[]
-        for i in range(1,len(self.layers)+1,2):
-            layer=self.layers[-i]
+        self.actived = []
+        for i in range(1, len(self.layers) + 1, 1):
+            layer = self.layers[-i]
             R, C = layer.shape
             for r in range(R):
                 for c in range(C):
                     layer[r, c].conduct(self.actived)
+
+            for a in self.actived:
+                if len(a.axon.outneurons) == 1:
+                    return a.axon.outneurons[0].label
+
+            # if(len(self.actived)>0):
+            #    print(len(self.actived))
+            #    label=self.actived[0].axon.outneurons[0].label
+            #    break
+        return None
+
+    def predict(self,img):#inference
+        self.feel(img)
+
+        self.actived=[]
+        for ilayer in range(1,len(self.layers)+1,1):
+            layer=self.layers[-ilayer]
+
+            for n in self.infrneurons[-ilayer]:
+                n.calcValue()
+                if n.dendritic.value>=len(n.dendritic.synapses):#actived
+                    if n.axon.outneurons != []:
+                        self.actived.append(n)
 
             for a in self.actived:
                 if len(a.axon.outneurons)==1:

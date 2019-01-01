@@ -33,8 +33,11 @@ import matplotlib.pyplot as plt
 
 
 
-def pltshow(img):
-    plt.imshow(img, cmap='gray')
+def pltshow(img,title):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_title(title)
+    ax.imshow(img, cmap='gray')
     plt.show()
 
 class pallium:#局部回路神经元及抑制
@@ -452,7 +455,7 @@ class opticnerve:
         return nmax
 
     @with_goto
-    def train(self,imgs,labels):
+    def train_1230(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
             #if labels[i] not in [4,9,7]:
@@ -460,6 +463,9 @@ class opticnerve:
             if(i==9):
                 b=0
                 pass
+            #nu = self.predict(imgs[i])
+            #lbs=[n.label for n in nu.axon.outneurons]
+
             alike = self.learn(imgs[i],labels[i]) #learn knowledge if confilict lost befor
             while len(alike)>0:
                 ca=alike.copy()
@@ -468,7 +474,7 @@ class opticnerve:
                     self.clearneurons()
                     n.reappear()
                     img = self.output()
-                    print(labels[i],"like", n.axon.outneurons[0].label,end=" ")
+                    print(labels[i],"like", n.axon.outneurons[0].label,end=",  ")
                     sys.stdout.flush()
                     nalike = self.learn(img, n.axon.outneurons[0].label)
                     alike=alike+nalike
@@ -480,9 +486,10 @@ class opticnerve:
             #    continue
             if(i==9):
                 b=0
-            lb=self.predict(imgs[i])
-            if(labels[i]!=lb):
-                print(i,"Error: %s predict %s ,learn again "%(labels[i],lb))
+            nu=self.predict(imgs[i])
+            lbs=[n.label for n in nu.axon.outneurons]
+            if(labels[i] not in lbs):
+                print(i,"Error: %s predict %s ,learn again "%(labels[i],str(lbs)) )
                 #print("May by 2 yi")
                 #pltshow(imgs[i])
 
@@ -492,6 +499,88 @@ class opticnerve:
 
         if ok==False:
             goto .testlabel
+
+    def getknow(self,label):
+        if (self.knowledges.__contains__(label)):
+            nlb = self.knowledges[label]
+        else:
+            nlb = neuron()
+            nlb.label = label
+            self.knowledges[label] = nlb
+        return nlb
+
+    @with_goto
+    def train(self,imgs,labels):
+        label .trainlabel
+        for i in range(imgs.shape[0]):
+            #if labels[i] not in [4,9,7]:
+            #    continue
+            if(i==9):
+                b=0
+                pass
+            
+            img=imgs[i]
+            imglabel=labels[i]
+            memory = self.remember(img,imglabel)
+            print("i:",i)
+
+            label .predictlabel
+            nu,alike,ilayer = self.inference(img)
+            know=self.getknow(imglabel)
+            if(alike==None):#not found,create new
+                nu.axon.outneurons.append(know)
+                nu.memory = [memory]
+                self.infrneurons[-ilayer].append(nu)
+            else:
+                lbs=[n.label for n in alike.axon.outneurons]
+                if(imglabel not in lbs):#found but not this label, need create new and renew history 
+                    print("####Error: %s predict %s ,need renew memory "%(imglabel,str(lbs)) )
+                    his =  alike.memory.copy()
+                    alike.memory.clear()
+                    nu.axon.outneurons.append(know)
+                    nu.memory=[memory]
+                    self.infrneurons[-ilayer].append(nu)
+                    for n in his:
+                        #pltshow(img,imglabel)
+                        self.clearneurons()
+                        n.reappear()
+                        img=self.output()
+                        imglabel=n.axon.outneurons[0].label
+                        memory=n
+                        #pltshow(img,imglabel)
+                        goto .predictlabel
+                        #elf.learn(img,h.label) #use goto can instead diguisuanfa
+        
+                else:
+                    if(len(lbs)>1):
+                        print(i,"%s predict more than one: %s "%(labels[i],str(lbs)) )
+                    else:
+                        print(lbs[0],end=" ")
+
+        label .testlabel
+        ok =True
+        for i in range(imgs.shape[0]):
+            #if labels[i] not in [4,9,7]:
+            #    continue
+            if(i==9):
+                b=0
+            nu,alike,ilayer=self.inference(imgs[i])
+            if alike!=None:
+                lbs=[n.label for n in alike.axon.outneurons]
+            else:
+                lbs=[]
+            if(labels[i] not in lbs):
+                print(i,"Error: %s predict %s ,learn again "%(labels[i],str(lbs)) )
+                #print("May by 2 yi")
+                #pltshow(imgs[i])
+
+                self.learn(imgs[i],labels[i])
+                lb = self.predict(imgs[i])
+                ok = False
+
+        if ok==False:
+            goto .testlabel
+
 
 
     def learn_org(self, img, label):#digui is slow
@@ -779,22 +868,17 @@ class opticnerve:
         self.pallium=v
 
 
-    def inference(self):
-        if len(self.knowledges) == 0:
-            self.actived = []
+    def predict(self,img):
+        nu,alike,ilayer = self.inference(img)
+        if alike!=None:
+            lbs=[n.label for n in alike.axon.outneurons]
+        else:
+            lbs=[]
+        print(lbs)
+        if lbs!=[]:
+            return lbs[0]
+        else:
             return None
-
-        for layer in range(len(self.layers),0,-1):
-            for n in layer:
-                n.conduct(self.actived)
-            #test label
-
-        for n in self.pallium:
-            n.calcValue()
-
-        list1 = sorted(self.knowledges.items(), key=lambda x: x[1].value, reverse=True)
-        nmax = list1[0][1]  # may be mut, not top, how can i do? = .value=28*28
-        return nmax
 
     def predict_org(self, img):  # inference digui is slow
         self.feel(img)
@@ -817,35 +901,40 @@ class opticnerve:
             #    break
         return None
 
-    def predict(self,img):#inference
+    def inference(self,img):#inference
         self.feel(img)
 
-        self.actived=[]
-        alike=[]
+        #self.actived=[]
+        nu=neuron()
+        alike=[None]
         for ilayer in range(1,len(self.layers)+1,1):
             layer=self.layers[-ilayer]
+            blAct = False
+            for nrow in layer:
+                for n in nrow:
+                    nu.dendritic.connectfrom(n.axon,n.value)
 
             for n in self.infrneurons[-ilayer]:
                 n.calcValue()
-                if len(n.axon.outneurons) != 1:
-                    continue
-                alike.append(n)
                 if n.dendritic.value>=len(n.dendritic.synapses):#actived
-                    self.actived.append(n)
-
-        if len(self.actived)>0:
-            return self.actived[0].axon.outneurons[0].label
-        else:
-            print("Not found actived , get alike")
-            list1 = sorted(alike, key=lambda v: v.value, reverse=True)
-            return list1[0].axon.outneurons[0].label
+                    #self.actived.append(n)
+                    blAct = True
+                    if len(n.axon.outneurons) == 1:
+                        n.ilayer=ilayer
+                        alike.append(n)
+                        #return n# get active  but not the end,because someone can active more then one ,the last is we found
 
 
-            #if(len(self.actived)>0):
-            #    print(len(self.actived))
-            #    label=self.actived[0].axon.outneurons[0].label
-            #    break
-        return None
+            if blAct==False:
+                return nu,alike[-1],ilayer
+            else:
+                print("ilayer:",ilayer)
+
+        #never goto this place
+        print("#############all matched ,mayby 2yi,get last match",ilayer)
+        #self.actived[-1].ilayer=ilayer
+        return nu,alike[-1],ilayer
+
 
     def recall(self, img):#recall from history
         #img=self.sdr(img)

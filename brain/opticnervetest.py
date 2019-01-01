@@ -66,7 +66,7 @@ def test28x28():
     import time
     sys.setrecursionlimit(1000000) #for shelve
     a=time.time()
-    TCNT=500#13#120#17
+    TCNT=50#13#120#17
     batchs=[TCNT]#''',400,500'''
 
 #    for i in range(TCNT):

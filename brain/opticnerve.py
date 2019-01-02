@@ -167,48 +167,7 @@ class opticnerve:
                     cimg[i,j]=1
         return cimg
 
-    def createfeellayers_org(self):
-        ROWS, COLS = self.ROWS,self.COLS
-        self.layers=[]
-        lastlayer = self.neurons
-        #sdr
-        layer = np.array([[neuron() for ii in range(COLS)]
-                            for jj in range(ROWS)])  # brains
-        self.layers.append(layer)#orig layer
-        #layer=layer.copy()
-        #self.layers.append(layer)#sdr actived layer
-        #sdr
-        for i in range(1, ROWS - 1):
-            for j in range(1, COLS - 1):
-                n = layer[i, j]
-                # connect pre
-                for x in range(-1, 2):
-                    for y in range(-1, 2):
-                        n.dendritic.connectfrom(lastlayer[i + x, j + y].axon, 1)
-                        if (x == 0 and y == 0):  # max
-                            continue
-                        n.indendritics.append(layer[i + x, j + y].dendritic)
-                        n.nagativeaxons.append(layer[i + x, j + y].axon)
 
-        # conv2
-        while ROWS>=4:
-            ROWS = ROWS // 2
-            COLS = COLS // 2
-            lastlayer=layer
-            layer = np.array([[neuron() for ii in range(COLS)]
-                                    for jj in range(ROWS)])  # brains
-            self.layers.append(layer)
-            for i in range(1, ROWS - 1):
-                for j in range(1, COLS - 1):
-                    n = layer[i, j]
-                    # connect pre
-                    for x in range(-1, 2):
-                        for y in range(-1, 2):
-                            n.dendritic.connectfrom(lastlayer[2 * i + y, 2 * j + x].axon, 1)
-                            if (x == 0 and y == 0):  # max
-                                continue
-                            n.indendritics.append(layer[i + x, j + y].dendritic)
-                            n.nagativeaxons.append(layer[i + x, j + y].axon)
 
     def createfeellayers(self):
         ROWS, COLS = self.ROWS,self.COLS
@@ -435,7 +394,7 @@ class opticnerve:
             for j in range(self.COLS):
                     self.neurons[i, j].conduct(self.actived)
 
-    def look(self, img):  # get max overlap
+    def look_20190102(self, img):  # get max overlap
         if len(self.pallium)==0:
             self.actived=[]
             return None
@@ -451,6 +410,31 @@ class opticnerve:
 
         list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
         nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
+
+        return nmax
+    def look(self, img):  # get seem overlap for memory
+        if len(self.pallium)==0:
+            self.actived=[]
+            return None
+
+        self.reset()
+        self.input(img)
+        results=[]
+        for n in self.pallium:
+            n.calcValue()
+            #if(n.axon.outneurons!=[]):
+            #    results.append(n)
+            if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
+                #return n
+                results.append(n)
+
+
+
+        list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
+        if len(list1)>0:
+            nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
+        else:
+            nmax=None
 
         return nmax
 
@@ -510,7 +494,7 @@ class opticnerve:
         return nlb
 
     @with_goto
-    def train(self,imgs,labels):
+    def train_20190102(self,imgs,labels):
         label .trainlabel
         for i in range(imgs.shape[0]):
             #if labels[i] not in [4,9,7]:
@@ -522,7 +506,7 @@ class opticnerve:
             img=imgs[i]
             imglabel=labels[i]
             memory = self.remember(img,imglabel)
-            print("i:",i)
+            #print("i:",i)
 
             label .predictlabel
             nu,alike,ilayer = self.inference(img)
@@ -533,8 +517,8 @@ class opticnerve:
                 self.infrneurons[-ilayer].append(nu)
             else:
                 lbs=[n.label for n in alike.axon.outneurons]
-                if(imglabel not in lbs):#found but not this label, need create new and renew history 
-                    print("####Error: %s predict %s ,need renew memory "%(imglabel,str(lbs)) )
+                if(imglabel not in lbs):#found but not this label, need create new and renew history
+                    #print("####Error: %s predict %s ,need renew memory "%(imglabel,str(lbs)) )
                     his =  alike.memory.copy()
                     alike.memory.clear()
                     nu.axon.outneurons.append(know)
@@ -548,14 +532,15 @@ class opticnerve:
                         imglabel=n.axon.outneurons[0].label
                         memory=n
                         #pltshow(img,imglabel)
+                        #print("redo:",imglabel,end=" ")
                         goto .predictlabel
                         #elf.learn(img,h.label) #use goto can instead diguisuanfa
         
                 else:
                     if(len(lbs)>1):
                         print(i,"%s predict more than one: %s "%(labels[i],str(lbs)) )
-                    else:
-                        print(lbs[0],end=" ")
+                    #else:
+                    #    print(lbs[0],end=" ")
 
         label .testlabel
         ok =True
@@ -573,15 +558,67 @@ class opticnerve:
                 print(i,"Error: %s predict %s ,learn again "%(labels[i],str(lbs)) )
                 #print("May by 2 yi")
                 #pltshow(imgs[i])
-
+                #memory = self.remember(imgs[i],labels[i])
                 self.learn(imgs[i],labels[i])
-                lb = self.predict(imgs[i])
+                #lb = self.predict(imgs[i])
                 ok = False
+                break
 
         if ok==False:
+            goto .trainlabel
+
+    @with_goto
+    def train(self, imgs, labels):
+        label .trainlabel
+        for i in range(imgs.shape[0]):
+            # if labels[i] not in [4,9,7]:
+            #    continue
+            if (i == 22):
+                #maybe memory error
+                b = 0
+                pass
+            if (i>=3):
+                b=0
+            self.learn(imgs[i],labels[i])
+            if (i == 75):
+                nu, alike, ilayer = self.inference(imgs[33])
+                if(alike != None):
+                    print (i,labels[33],alike.axon.outneurons[0].label)
+                else:
+                    print (i,None)
+
+                b = 0
+
+        self.status()
+        self.reform()
+        self.status()
+        label .testlabel
+        ok = True
+        for i in range(imgs.shape[0]):
+            # if labels[i] not in [4,9,7]:
+            #    continue
+            if (i == 22):
+                b = 0
+            #print(i,end=" ")
+            #sys.stdout.flush()
+            #self.learn(imgs[i], labels[i])
+            nu, alike, ilayer = self.inference(imgs[i])
+            if alike != None:
+                lbs = [n.label for n in alike.axon.outneurons]
+            else:
+                lbs = []
+            if (labels[i] not in lbs):
+                print(i, "Error: %s predict %s ,learn again " % (labels[i], str(lbs)))
+                # print("May by 2 yi")
+                # pltshow(imgs[i])
+                # memory = self.remember(imgs[i],labels[i])
+                self.learn(imgs[i], labels[i])
+                # lb = self.predict(imgs[i])
+                ok = False
+                #break
+
+        if ok == False:
             goto .testlabel
-
-
 
     def learn_org(self, img, label):#digui is slow
         self.feel(img)
@@ -665,7 +702,55 @@ class opticnerve:
         if(n.label == label):
             return
 
-    def learn(self, img, label):#digui is slow
+    @with_goto
+    def learn(self,img,imglabel,memory=None):#recursion learn
+        if memory == None:
+            memory = self.remember(img, imglabel)
+
+        self.feel(img)
+
+        label.predictlabel
+        nu, alike, ilayer = self.inference(img)
+        know = self.getknow(imglabel)
+        if (alike == None):  # not found,create new
+            nu.axon.outneurons.append(know)
+            nu.memory = [memory]
+            self.infrneurons[-ilayer].append(nu)
+        else:
+            lbs = [n.label for n in alike.axon.outneurons]
+            if (imglabel not in lbs):  # found but not this label, need create new, and renew history memory
+                # print("####Error: %s predict %s ,need renew memory "%(imglabel,str(lbs)) )
+                his = alike.memory.copy()
+                alike.memory.clear()
+                nu.axon.outneurons.append(know)
+                nu.memory = [memory]
+                self.infrneurons[-ilayer].append(nu)
+                for n in his:
+                    # pltshow(img,imglabel)
+                    self.clearneurons()
+                    n.reappear()
+                    img = self.output()
+                    imglabel = n.axon.outneurons[0].label
+                    memory = n
+                #    # pltshow(img,imglabel)
+                #    # print("redo:",imglabel,end=" ")
+                    self.learn(img,imglabel,memory)
+                #    # elf.learn(img,h.label) #use goto can instead diguisuanfa
+
+            else:
+                alike.memory.append(memory)
+                if (len(lbs) > 1):
+                    print(i, "%s predict more than one: %s " % (labels[i], str(lbs)))
+                # else:
+                #    print(lbs[0],end=" ")
+
+
+            if (imglabel not in lbs):  # found but not this label, need create new and renew history
+                # print("####Error: %s predict %s ,need renew memory "%(imglabel,str(lbs)) )
+                his = alike.memory.copy()
+
+
+    def learn_20190102(self, img, label):#digui is slow
         self.feel(img)
 
         self.actived=[]
@@ -807,6 +892,7 @@ class opticnerve:
                         dictaxonpolarity[axonpolarity].append(s.dendritic)
                     else:
                         dictaxonpolarity[axonpolarity] = [s.dendritic]
+
         for n in self.pallium:
             axon = n.axon
             if (len(axon.synapses) == 0):
@@ -818,6 +904,7 @@ class opticnerve:
                     dictaxonpolarity[axonpolarity].append(s.dendritic)
                 else:
                     dictaxonpolarity[axonpolarity] = [s.dendritic]
+
 
         for axonpolarity in dictaxonpolarity:
             dictlen[str(set(dictaxonpolarity[axonpolarity]))] = len(set(dictaxonpolarity[axonpolarity]))
@@ -852,7 +939,6 @@ class opticnerve:
                 for (axon, polarity) in dset:
                     d.disconnectfrom(axon,polarity)
         self.sortpallium()
-
     def sortpallium(self):
         v=[]
         while len(self.pallium)>0:
@@ -867,6 +953,38 @@ class opticnerve:
                     self.pallium.remove(n)
         self.pallium=v
 
+    def reforminference(self):
+        dictaxonpolarity = {}
+        dictlen = {}
+        dictdendritic = {}
+        dictset={}
+        for layer in self.layers:
+            for nrow in layer:
+                for n in nrow:
+                    axon = n.axon
+                    if (len(axon.synapses) == 0):
+                        continue
+                    # calc axon,polarity in set
+                    for s in axon.synapses:
+                        axonpolarity = (axon, s.polarity)
+                        if (axonpolarity in dictaxonpolarity):
+                            dictaxonpolarity[axonpolarity].append(s.dendritic)
+                        else:
+                            dictaxonpolarity[axonpolarity] = [s.dendritic]
+        for layer in self.infrneurons:
+            for n in layer:
+                axon = n.axon
+                if (len(axon.synapses) == 0):
+                    continue
+                # calc axon,polarity in set
+                for s in axon.synapses:
+                    axonpolarity = (axon, s.polarity)
+                    if (axonpolarity in dictaxonpolarity):
+                        dictaxonpolarity[axonpolarity].append(s.dendritic)
+                    else:
+                        dictaxonpolarity[axonpolarity] = [s.dendritic]
+
+        #self.sortinference()
 
     def predict(self,img):
         nu,alike,ilayer = self.inference(img)
@@ -874,7 +992,7 @@ class opticnerve:
             lbs=[n.label for n in alike.axon.outneurons]
         else:
             lbs=[]
-        print(lbs)
+        #print(lbs)
         if lbs!=[]:
             return lbs[0]
         else:
@@ -904,8 +1022,8 @@ class opticnerve:
     def inference(self,img):#inference
         self.feel(img)
 
+        nu = neuron()  # create for current layer
         #self.actived=[]
-        nu=neuron()
         alike=[None]
         for ilayer in range(1,len(self.layers)+1,1):
             layer=self.layers[-ilayer]
@@ -919,7 +1037,7 @@ class opticnerve:
                 if n.dendritic.value>=len(n.dendritic.synapses):#actived
                     #self.actived.append(n)
                     blAct = True
-                    if len(n.axon.outneurons) == 1:
+                    if len(n.memory) >= 1:#axon.outneurons observe all of actived img,memory save only last
                         n.ilayer=ilayer
                         alike.append(n)
                         #return n# get active  but not the end,because someone can active more then one ,the last is we found
@@ -927,8 +1045,8 @@ class opticnerve:
 
             if blAct==False:
                 return nu,alike[-1],ilayer
-            else:
-                print("ilayer:",ilayer)
+            #else:
+            #    print("ilayer:",ilayer)
 
         #never goto this place
         print("#############all matched ,mayby 2yi,get last match",ilayer)
@@ -970,7 +1088,16 @@ class opticnerve:
             s+= cnt
             if cnt==1:
                 print ("Only one synapse",n)
-        print("synapses:",s,"pallium:",len(self.pallium))
+        cinf=0
+        for layer in self.infrneurons:
+            for n in layer:
+                cinf+=1
+                cnt=len(n.dendritic.synapses)
+                s+= cnt
+                if cnt==1:
+                    print ("Only one synapse",n)
+
+        print("synapses:",s,"pallium:",len(self.pallium),"infnu:",cinf)
         pass
 
 

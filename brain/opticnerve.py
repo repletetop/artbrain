@@ -573,7 +573,8 @@ class opticnerve:
         for i in range(imgs.shape[0]):
             # if labels[i] not in [4,9,7]:
             #    continue
-            if (i == 22):
+            if (i%100 == 0):
+                print("i:",i)
                 #maybe memory error
                 b = 0
                 pass
@@ -581,7 +582,7 @@ class opticnerve:
                 b=0
             self.learn(imgs[i],labels[i])
             if (i == 75):
-                nu, alike, ilayer = self.inference(imgs[33])
+                nu, alike, ilayer,nubest = self.inference(imgs[33])
                 if(alike != None):
                     print (i,labels[33],alike.axon.outneurons[0].label)
                 else:
@@ -589,36 +590,29 @@ class opticnerve:
 
                 b = 0
 
-        self.status()
-        self.reform()
-        self.status()
+        #self.status()
+        #self.reform()
+        #self.status()
         label .testlabel
         ok = True
         for i in range(imgs.shape[0]):
             # if labels[i] not in [4,9,7]:
             #    continue
-            if (i == 22):
+            if (i == 89):
                 b = 0
             #print(i,end=" ")
             #sys.stdout.flush()
             #self.learn(imgs[i], labels[i])
-            nu, alike, ilayer = self.inference(imgs[i])
-            if alike != None:
-                lbs = [n.label for n in alike.axon.outneurons]
-            else:
-                lbs = []
-            if (labels[i] not in lbs):
-                print(i, "Error: %s predict %s ,learn again " % (labels[i], str(lbs)))
-                # print("May by 2 yi")
-                # pltshow(imgs[i])
-                # memory = self.remember(imgs[i],labels[i])
+            lb=self.predict(imgs[i])
+            if (labels[i] != lb):
+                print(i, "Error: %s predict %s " % (labels[i], lb))
                 self.learn(imgs[i], labels[i])
-                # lb = self.predict(imgs[i])
                 ok = False
-                #break
 
         if ok == False:
+            print("Learn again...")
             goto .testlabel
+        print("End train.")
 
     def learn_org(self, img, label):#digui is slow
         self.feel(img)
@@ -704,6 +698,84 @@ class opticnerve:
 
     @with_goto
     def learn(self,img,imglabel,memory=None):#recursion learn
+        #if memory == None:
+        #    memory = self.remember(img, imglabel)
+
+        self.feel(img)
+
+        label.predictlabel
+        nu, alike, ilayer,mostsimilar = self.inference(img)
+        know = self.getknow(imglabel)
+        if (alike == None):  # not found,create new
+            nu.axon.outneurons.append(know)
+            nu.memory = [imglabel]
+            self.infrneurons[-ilayer].append(nu)
+        else:
+            if len(alike.memory)>0:
+                lbs = [n.label for n in alike.axon.outneurons]
+                if (len(lbs) > 1):
+                    print(i, "%s predict more than one: %s " % (labels[i], str(lbs)))
+                if imglabel in lbs:
+                    alike.memory.append(imglabel)
+                    return
+                else:
+                    alike.memory.clear()
+                    nu.axon.outneurons.append(know)
+                    nu.memory = [imglabel]
+                    self.infrneurons[-ilayer].append(nu)
+            else:
+                alike.memory.clear()
+                nu.axon.outneurons.append(know)
+                nu.memory = [imglabel]
+                self.infrneurons[-ilayer].append(nu)
+
+    @with_goto
+    def learn_20190103(self,img,imglabel,memory=None):#recursion learn
+        #if memory == None:
+        #    memory = self.remember(img, imglabel)
+
+        self.feel(img)
+
+        label.predictlabel
+        nu, alike, ilayer,mostsimilar = self.inference(img)
+        know = self.getknow(imglabel)
+        if (alike == None):  # not found,create new
+            if mostsimilar!=None and mostsimilar.axon.outneurons[0].label==imglabel:
+                mostsimilar.memory.append(imglabel)
+            else:
+                nu.axon.outneurons.append(know)
+                nu.memory = [imglabel]
+                self.infrneurons[-ilayer].append(nu)
+        else:
+            if len(alike.memory)>0:
+                lbs = [n.label for n in alike.axon.outneurons]
+                if (len(lbs) > 1):
+                    print(i, "%s predict more than one: %s " % (labels[i], str(lbs)))
+                if imglabel in lbs:
+                    alike.memory.append(imglabel)
+                    return
+                else:
+                    if mostsimilar != None \
+                            and mostsimilar.axon.outneurons[0].label == imglabel:
+                        mostsimilar.memory.append(imglabel)
+                        return
+                    alike.memory.clear()
+                    nu.axon.outneurons.append(know)
+                    nu.memory = [imglabel]
+                    self.infrneurons[-ilayer].append(nu)
+            else:
+                if mostsimilar != None \
+                        and mostsimilar.axon.outneurons[0].label == imglabel:
+                    mostsimilar.memory.append(imglabel)
+                    return
+                alike.memory.clear()
+                nu.axon.outneurons.append(know)
+                nu.memory = [imglabel]
+                self.infrneurons[-ilayer].append(nu)
+
+
+    @with_goto
+    def learn_withmemory(self,img,imglabel,memory=None):#recursion learn
         if memory == None:
             memory = self.remember(img, imglabel)
 
@@ -987,16 +1059,51 @@ class opticnerve:
         #self.sortinference()
 
     def predict(self,img):
-        nu,alike,ilayer = self.inference(img)
-        if alike!=None:
-            lbs=[n.label for n in alike.axon.outneurons]
+        nu,alike,ilayer,mostsimilar = self.inference(img)
+        # if mostsimilar != None:
+        #     lbs = [n.label for n in mostsimilar.axon.outneurons]
+        #     if len(lbs) > 0:
+        #         if len(lbs) > 1:
+        #             print("Have two label:", lbs)
+        #         return lbs[0]
+        # else:
+        #     lbs=[]
+        #     for n in self.actived:
+        #         if n!=None:
+        #             lbs.append([ms.label for ms in n.axon.outneurons])
+        #     if len(lbs)>0:
+        #         if len(lbs)>1:
+        #             print("More than one label:",lbs)
+        #         return lbs[0]
+        #     return None
+
+        if (alike == None):  # not found,create new
+            if mostsimilar!=None :
+                lbs = [n.label for n in mostsimilar.axon.outneurons]
+                if len(lbs)>0:
+                    if len(lbs)>1:
+                        print("Have two label:",lbs)
+                    return lbs[0]
+            return  None
         else:
-            lbs=[]
-        #print(lbs)
-        if lbs!=[]:
-            return lbs[0]
-        else:
-            return None
+            if len(alike.memory)>0:
+                lbs = [n.label for n in alike.axon.outneurons]
+                if(len(lbs)>0):
+                    if (len(lbs) > 1):
+                        print("predict more than one:" ,lbs)
+                    return lbs[0]
+                else:
+                    print("Error,No outneurons.")
+                    return None
+            else:
+                if mostsimilar != None :
+                    lbs = [n.label for n in mostsimilar.axon.outneurons]
+                    if len(lbs) > 0:
+                        if len(lbs) > 1:
+                            print("Have two label:", lbs)
+                        return lbs[0]
+                return None
+
 
     def predict_org(self, img):  # inference digui is slow
         self.feel(img)
@@ -1019,12 +1126,15 @@ class opticnerve:
             #    break
         return None
 
+    #input img
+    #output nu,lastactived,lastlayer,mostsimilar
+    #nu,current layer new neuron connect form,lastactived:lastlayer actived neuron,ilayer:lastlayer
+    #mostsimilar:current layer most similar neuron
     def inference(self,img):#inference
         self.feel(img)
 
         nu = neuron()  # create for current layer
-        #self.actived=[]
-        alike=[None]
+        self.actived=[None]
         for ilayer in range(1,len(self.layers)+1,1):
             layer=self.layers[-ilayer]
             blAct = False
@@ -1032,19 +1142,24 @@ class opticnerve:
                 for n in nrow:
                     nu.dendritic.connectfrom(n.axon,n.value)
 
+            nualikemax=0
+            mostsimilar=None
             for n in self.infrneurons[-ilayer]:
                 n.calcValue()
+                if n.dendritic.value>nualikemax:
+                    nualikemax = n.dendritic.value
+                    mostsimilar=n
                 if n.dendritic.value>=len(n.dendritic.synapses):#actived
                     #self.actived.append(n)
                     blAct = True
-                    if len(n.memory) >= 1:#axon.outneurons observe all of actived img,memory save only last
+                    if True or len(n.memory) >= 1:#axon.outneurons observe all of actived img,memory save only last
                         n.ilayer=ilayer
-                        alike.append(n)
+                        self.actived.append(n)
                         #return n# get active  but not the end,because someone can active more then one ,the last is we found
 
 
             if blAct==False:
-                return nu,alike[-1],ilayer
+                return nu,self.actived[-1],ilayer,mostsimilar
             #else:
             #    print("ilayer:",ilayer)
 

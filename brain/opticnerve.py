@@ -151,22 +151,50 @@ class opticnerve:
         self.input(img)
         ROWS, COLS = img.shape
         #SDR->COND3x3->SDR-COND3X3
-        self.layer1 = np.array([[neuron() for ii in range(COLS//3)]
-                                 for jj in range(ROWS//3)])  # brains
-        cimg=np.zeros((ROWS//3,COLS//3))
-        for i in range(ROWS//3):
-            for j in range(COLS//3):
+        self.layer1 = np.array([[neuron() for ii in range(COLS//2)]
+                                 for jj in range(ROWS//2)])  # brains
+        cimg=np.zeros((ROWS//2,COLS//2))
+        for i in range(ROWS//2):
+            for j in range(COLS//2):
                 n=self.layer1[i, j]
                 #connect pre
-                for x in range(3):
-                    for y in range(3):
-                        n.dendritic.connectfrom(self.neurons[3*i+y,3*j+x].axon,1)
+                for x in range(2):
+                    for y in range(2):
+                        n.dendritic.connectfrom(self.neurons[2*i+y,2*j+x].axon,1)
                 n.calcValue()
-                print(n.value)
-                if n.value>4:
+                print(n.dendritic.value)
+                if n.dendritic.value>0:
                     cimg[i,j]=1
         return cimg
 
+    def diff(self,img):
+        ROWS, COLS = img.shape
+        self.layers = []
+        layer = np.array([[neuron() for ii in range(COLS)]
+                          for jj in range(ROWS)])  # brains
+        self.layers.append(layer)
+        lastlayer = layer
+        layer = np.array([[neuron() for ii in range(COLS)]
+                          for jj in range(ROWS)])  # brains
+        for i in range(ROWS):
+            for j in range(COLS):
+                n = layer[i, j]
+                lastlayer[i,j].value=img[i,j]
+                for x in range(-1, 2):
+                    for y in range(-1, 2):
+                        if (i + x < 0 or i + x >= ROWS or j + y < 0
+                                or j + y >= COLS):
+                            continue
+                        n.dendritic.connectfrom(lastlayer[i + x, j + y].axon, 1)
+                n.calcValue()
+        for i in range(ROWS):
+            for j in range(COLS):
+                n = layer[i, j]
+                n.value = (lastlayer[i,j].value-n.value/9)
+        imgnew=self.outputlayer(layer)
+        pltshow(img,'')
+        pltshow(imgnew,'')
+        print(imgnew)
 
 
     def createfeellayers(self):
@@ -177,7 +205,7 @@ class opticnerve:
                             for jj in range(ROWS)])  # brains
         self.layers.append(layer)#orig layer
         while True:
-            # sdr connect
+            #fine thin hengxiangyizhi
             lastlayer=layer
             layer = np.array([[neuron() for ii in range(COLS)]
                                     for jj in range(ROWS)])  # brains
@@ -194,7 +222,27 @@ class opticnerve:
                                 continue
                             n.nbdendritic.connectfrom(lastlayer[i + x, j + y].axon, 1)
                             n.indendritics.append(layer[i + x, j + y].nbdendritic)
+                            #n.nagativeaxons.append(layer[i + x, j + y].axon)
+
+            # sdr connect
+            lastlayer=layer
+            layer = np.array([[neuron() for ii in range(COLS)]
+                                    for jj in range(ROWS)])  # brains
+            self.layers.append(layer)
+            for i in range(ROWS):
+                for j in range(COLS):
+                    n = layer[i, j]
+                    # connect neighbourhood
+                    n.dendritic.connectfrom(lastlayer[i , j ].axon, 1)
+
+                    for x in range(-1, 2):
+                        for y in range(-1, 2):
+                            if(i+x<0 or i+x>=ROWS or j+y<0 or j+y>=COLS):
+                                continue
+                            #n.nbdendritic.connectfrom(lastlayer[i + x, j + y].axon, 1)
+                            #n.indendritics.append(layer[i + x, j + y].nbdendritic)
                             n.nagativeaxons.append(layer[i + x, j + y].axon)
+
 
             if ROWS<4:
                 break;
@@ -217,8 +265,6 @@ class opticnerve:
         self.infrneurons=[[] for i in range(len(self.layers))]
 
 
-    def feeltimes(self,img):
-        pass
 
     def feel(self, img):
         #for n in self.infrneurons:#
@@ -275,11 +321,11 @@ class opticnerve:
                     for ax in n.nagativeaxons:
                         if ax.connectedNeuron.value:
                             cnt+=1
-                    if cnt<3:#only reserve 3 point include self
+                    if cnt<=3:#only reserve 3 point include self
                         n.value = 1
                     else:
                         n.value = 0
-            #pltshow(self.outputlayer(layer))
+            #pltshow(self.outputlayer(layer),"")
 
 
 
@@ -422,11 +468,11 @@ class opticnerve:
         results=[]
         for n in self.pallium:
             n.calcValue()
-            #if(n.axon.outneurons!=[]):
-            #    results.append(n)
-            if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
-                #return n
+            if(n.axon.outneurons!=[]):
                 results.append(n)
+            #if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
+            #    #return n
+            #    results.append(n)
 
 
 
@@ -434,7 +480,7 @@ class opticnerve:
         if len(list1)>0:
             nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
         else:
-            nmax=None
+            return None
 
         return nmax
 
@@ -701,33 +747,32 @@ class opticnerve:
         #if memory == None:
         #    memory = self.remember(img, imglabel)
 
-        self.feel(img)
-
         label.predictlabel
-        nu, alike, ilayer,mostsimilar = self.inference(img)
+        ilayer,mostsimilar,lastact = self.inference(img)
         know = self.getknow(imglabel)
-        if (alike == None):  # not found,create new
+        if (mostsimilar == None):  # not found,create new
+            nu=neuron()
+            if(lastact!=None):
+                nu.dendritic.connectfrom(lastact.axon,1)#connect to down layer
+            for n in self.layers[-ilayer].flat:#use up layer
+                nu.dendritic.connectfrom(n.axon, n.value)
             nu.axon.outneurons.append(know)
-            nu.memory = [imglabel]
             self.infrneurons[-ilayer].append(nu)
         else:
-            if len(alike.memory)>0:
-                lbs = [n.label for n in alike.axon.outneurons]
-                if (len(lbs) > 1):
-                    print(i, "%s predict more than one: %s " % (labels[i], str(lbs)))
-                if imglabel in lbs:
-                    alike.memory.append(imglabel)
-                    return
-                else:
-                    alike.memory.clear()
-                    nu.axon.outneurons.append(know)
-                    nu.memory = [imglabel]
-                    self.infrneurons[-ilayer].append(nu)
-            else:
-                alike.memory.clear()
+            lbs = [n.label for n in mostsimilar.axon.outneurons]
+            if (len(lbs) > 1):
+                print(imglabel," predict more than one: ",lbs)
+            if imglabel not in lbs:
+                nu = neuron()
+                if (lastact != None):
+                    nu.dendritic.connectfrom(lastact.axon, 1)  # connect to down layer
+                #print(ilayer)
+                for n in self.layers[-ilayer].flat:  # use up layer
+                    nu.dendritic.connectfrom(n.axon, n.value)
                 nu.axon.outneurons.append(know)
-                nu.memory = [imglabel]
                 self.infrneurons[-ilayer].append(nu)
+                return False
+        return None
 
     @with_goto
     def learn_20190103(self,img,imglabel,memory=None):#recursion learn
@@ -1007,10 +1052,20 @@ class opticnerve:
                 n.dendritic.connectfrom(axon,polarity)
 
             for d in ds:
-                d.connectfrom(n.axon,1)
                 for (axon, polarity) in dset:
                     d.disconnectfrom(axon,polarity)
+                if d.synapses==[]:
+                    print("No synapses,delete dendritic")
+                    for ss in d.connectedNeuron.axon.synapses:
+                        ss.axon=n.axon
+                    self.pallium.remove(d.connectedNeuron)
+                    del d.connectedNeuron
+                    del d
+                else:
+                    d.connectfrom(n.axon,1)
+
         self.sortpallium()
+
     def sortpallium(self):
         v=[]
         while len(self.pallium)>0:
@@ -1059,50 +1114,41 @@ class opticnerve:
         #self.sortinference()
 
     def predict(self,img):
-        nu,alike,ilayer,mostsimilar = self.inference(img)
-        # if mostsimilar != None:
-        #     lbs = [n.label for n in mostsimilar.axon.outneurons]
-        #     if len(lbs) > 0:
-        #         if len(lbs) > 1:
-        #             print("Have two label:", lbs)
-        #         return lbs[0]
+        ilayer, mostsimilar, lastact = self.inference(img)
+        if mostsimilar != None:
+            lbs = [n.label for n in mostsimilar.axon.outneurons]
+            if len(lbs) > 0:
+                if len(lbs) > 1:
+                    print("Have two label:", lbs)
+                return lbs[0]
+        return None
+        #
+        # if (alike == None):  # not found,create new
+        #     if mostsimilar!=None :
+        #         lbs = [n.label for n in mostsimilar.axon.outneurons]
+        #         if len(lbs)>0:
+        #             if len(lbs)>1:
+        #                 print("Have two label:",lbs)
+        #             return lbs[0]
+        #     return  None
         # else:
-        #     lbs=[]
-        #     for n in self.actived:
-        #         if n!=None:
-        #             lbs.append([ms.label for ms in n.axon.outneurons])
-        #     if len(lbs)>0:
-        #         if len(lbs)>1:
-        #             print("More than one label:",lbs)
-        #         return lbs[0]
-        #     return None
-
-        if (alike == None):  # not found,create new
-            if mostsimilar!=None :
-                lbs = [n.label for n in mostsimilar.axon.outneurons]
-                if len(lbs)>0:
-                    if len(lbs)>1:
-                        print("Have two label:",lbs)
-                    return lbs[0]
-            return  None
-        else:
-            if len(alike.memory)>0:
-                lbs = [n.label for n in alike.axon.outneurons]
-                if(len(lbs)>0):
-                    if (len(lbs) > 1):
-                        print("predict more than one:" ,lbs)
-                    return lbs[0]
-                else:
-                    print("Error,No outneurons.")
-                    return None
-            else:
-                if mostsimilar != None :
-                    lbs = [n.label for n in mostsimilar.axon.outneurons]
-                    if len(lbs) > 0:
-                        if len(lbs) > 1:
-                            print("Have two label:", lbs)
-                        return lbs[0]
-                return None
+        #     if len(alike.memory)>0:
+        #         lbs = [n.label for n in alike.axon.outneurons]
+        #         if(len(lbs)>0):
+        #             if (len(lbs) > 1):
+        #                 print("predict more than one:" ,lbs)
+        #             return lbs[0]
+        #         else:
+        #             print("Error,No outneurons.")
+        #             return None
+        #     else:
+        #         if mostsimilar != None :
+        #             lbs = [n.label for n in mostsimilar.axon.outneurons]
+        #             if len(lbs) > 0:
+        #                 if len(lbs) > 1:
+        #                     print("Have two label:", lbs)
+        #                 return lbs[0]
+        #         return None
 
 
     def predict_org(self, img):  # inference digui is slow
@@ -1130,43 +1176,38 @@ class opticnerve:
     #output nu,lastactived,lastlayer,mostsimilar
     #nu,current layer new neuron connect form,lastactived:lastlayer actived neuron,ilayer:lastlayer
     #mostsimilar:current layer most similar neuron
+    @with_goto
     def inference(self,img):#inference
         self.feel(img)
 
-        nu = neuron()  # create for current layer
-        self.actived=[None]
-        for ilayer in range(1,len(self.layers)+1,1):
-            layer=self.layers[-ilayer]
-            blAct = False
-            for nrow in layer:
-                for n in nrow:
-                    nu.dendritic.connectfrom(n.axon,n.value)
+        lastact = None
+        ilayer = 1
+        lastinflayer=[n for n in self.infrneurons[-ilayer]]
 
-            nualikemax=0
-            mostsimilar=None
-            for n in self.infrneurons[-ilayer]:
-                n.calcValue()
-                if n.dendritic.value>nualikemax:
-                    nualikemax = n.dendritic.value
-                    mostsimilar=n
-                if n.dendritic.value>=len(n.dendritic.synapses):#actived
-                    #self.actived.append(n)
+        label .lbtry
+        vmax = -1
+        mostsimilar = None
+        blAct = False
+        for n in lastinflayer:
+            n.calcValue()
+            if n.dendritic.value > vmax:
+                vmax = n.dendritic.value
+                mostsimilar = n
+
+            if n.dendritic.value >= len(n.dendritic.synapses):  # actived
+                ilayer += 1
+                lastact = n
+                lastinflayer =[ s.dendritic.connectedNeuron for s in n.axon.synapses]
+                if lastinflayer!=[]:
+                    goto .lbtry
+                else:
+                    #last layer and not have same actived
                     blAct = True
-                    if True or len(n.memory) >= 1:#axon.outneurons observe all of actived img,memory save only last
-                        n.ilayer=ilayer
-                        self.actived.append(n)
-                        #return n# get active  but not the end,because someone can active more then one ,the last is we found
+                    mostsimilar = n
+                    break
 
+        return ilayer,mostsimilar,lastact #if mostsimilar is actived ilayer is up layer else ilayer is current layer
 
-            if blAct==False:
-                return nu,self.actived[-1],ilayer,mostsimilar
-            #else:
-            #    print("ilayer:",ilayer)
-
-        #never goto this place
-        print("#############all matched ,mayby 2yi,get last match",ilayer)
-        #self.actived[-1].ilayer=ilayer
-        return nu,alike[-1],ilayer
 
 
     def recall(self, img):#recall from history
@@ -1183,14 +1224,14 @@ class opticnerve:
         img=self.output()
         print(img)
     def output(self):
-        img=np.zeros((self.ROWS,self.COLS),np.uint8)
+        img=np.zeros((self.ROWS,self.COLS),np.int)
         for i in range(self.ROWS):
             for j in range(self.COLS):
                 img[i,j]=self.neurons[i,j].value
         return img
     def outputlayer(self,layer):
         R,C = layer.shape
-        img=np.zeros((R,C),np.uint8)
+        img=np.zeros((R,C),np.int)
         for i in range(R):
             for j in range(C):
                 img[i,j]=layer[i,j].value

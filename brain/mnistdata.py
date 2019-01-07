@@ -40,7 +40,7 @@ def decode_idx3_ubyte(idx3_ubyte_file):
     offset += struct.calcsize(fmt_header)
     #print("offset: ",offset)
     fmt_image = '>' + str(image_size) + 'B'   # '>784B'的意思就是用大端法读取784个unsigned byte
-    images = np.empty((num_images, num_rows*num_cols))
+    images = np.empty((num_images, num_rows*num_cols),np.uint8)
     for i in range(num_images):
         #if (i + 1) % 10000 == 0:
             #print(images[i])
@@ -69,7 +69,7 @@ def decode_idx1_ubyte(idx1_ubyte_file):
     # 解析数据集
     offset += struct.calcsize(fmt_header)
     fmt_image = '>B'
-    labels = np.empty(num_images)
+    labels = np.empty(num_images,np.uint8)
     for i in range(num_images):
         #if (i + 1) % 10000 == 0:
         #    print ('已解析 %d' % (i + 1) + '张')

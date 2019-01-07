@@ -2,76 +2,98 @@
 
 from opticnerve import *
 from hzk import *
-from mnistdatabin import *
+from mnistdata import *
 from goto import with_goto
 import shelve
 import os
+import time
 
+
+@with_goto
 def test28x28():
-    #allhz=hzk()
-    #i0=hz2img(allhz[0])
 
-    if os.path.exists('on2001s.sav.dat'):
-        print("Loading on200.sav not run on.__init__  !!!")
-        sv=shelve.open('on200.sav')
+
+    if os.path.exists('on1001.sav.dat'):
+        print("Loading on100.sav not run on.__init__  !!!")
+        sv=shelve.open('on100.sav')
         on=sv['on']
         sv.close()
         on.status()
-    else:
+    else:#train
         on = opticnerve(28,28)
-
 
     #timages = load_train_images()
     #tlabels = load_train_labels()
     labels = load_test_labels()
-    if os.path.exists("testimgcenter.npy"):
-        imagesT=np.load('testimgcenter.npy')
+    if os.path.exists("testimgcenter256.npy"):
+        imagesT=np.load('testimgcenter256.npy')
     else:
         images = load_test_images()
         sp=images.shape
         imagesT=images.T.reshape(sp[1],28,28)
         for i in range(len(imagesT)):
             imagesT[i]=on.center(imagesT[i])
-        np.save('testimgcenter.npy',imagesT)
+        np.save('testimgcenter256.npy',imagesT)
 
-    #img=imagesT[0]
-    #pltshow(img)
-    #on.learn(imagesT[0],labels[0])
-    #on.learn(imagesT[1],labels[1])
-    #n=on.predict(imagesT[2])
-    #print(n)
-    #exit(1)
-    #on.remember(img,labels[0])
-    #on.clearneurons()
-    #on.pallium[0].reappear()
-    #a=on.output()
-    #spltshow(a)
-    #img = on.feel(img)
-    #exit(1)
-    #img = on.conv(img)
-    #pltshow(img)
-    #img = on.feel(img)
-    #pltshow(img)
-    #exit(0)
-    #img = on.sdr(img)
-    #pltshow(img)
-    #img = on.conv(img)
-    #pltshow(img)
-    #img = on.sdr(img)
-    #pltshow(img)
-    #img = on.conv(img)
-    #pltshow(img)
-    #exit(1)
 
-    import time
-    sys.setrecursionlimit(1000000) #for shelve
-    a=time.time()
-    TCNT=5000#13#120#17
-    batchs=[TCNT]#''',400,500'''
 
-#    for i in range(TCNT):
-#        if labels[i] not in [1, 3, 2]:
-#            continue
+
+
+    TCNT = 10
+    a = time.time()
+    for i in range(TCNT):
+        img=imagesT[i]
+        on.diff(img)
+
+        #on.feel(img)
+        #img=on.outputlayer(on.layers[0])#200: 0,56 1,51 2,55 3,13
+        #pltshow(img,labels[i])         #400: 0,39 1,53 2,50 3,12
+        on.remember(img, labels[i])     #5000 0,69 1,42
+        #img=on.outputlayer(on.layers[3])
+        #on.remember(img, labels[i])
+
+    b = time.time()
+    print("Train cost:", b - a)
+    on.status()
+    #on.reform()
+    #on.status()
+
+    #sys.setrecursionlimit(1000000)  # for shelve
+    #fn = "on%d.sav" % (TCNT)
+    #print("Save file %s..." % (fn))
+    #sv = shelve.open(fn)
+    #sv['on'] = on
+    #sv.close()
+
+
+
+
+    ok=0
+    print("Predict...")
+    c=time.time()
+    for i in range(9000+0,9000+100):
+    #for i in [9009,9011,9012]:
+        #lb=on.predict(imagesT[i])
+        img = imagesT[i]
+        #on.feel(img)
+        #img = on.outputlayer(on.layers[2])
+        nmax = on.look(img)
+        lb=nmax.axon.outneurons[0].label
+        #print(lb)
+        if(lb==labels[i]):
+            ok=ok+1
+        else:
+            print(i,":",labels[i]," predict ",lb)
+            #lb = on.predict(imagesT[i])
+    d = time.time()
+    print(" Right:", ok, '%',d-c)
+
+    print (ok)
+    exit(1)
+
+
+
+
 
     for n in range(len(batchs)):
         on.train(imagesT[0:TCNT],labels[0:TCNT])
@@ -81,16 +103,16 @@ def test28x28():
         #print("After reform:",end=" ")
         #on.status()
 
-        #fn="on%d.sav"%(TCNT)
-        #print("Save file %s..."%(fn))
-        #sv=shelve.open(fn)
-        #sv['on']=on
-        #sv.close()
+        fn="on%d.sav"%(TCNT)
+        print("Save file %s..."%(fn))
+        sv=shelve.open(fn)
+        sv['on']=on
+        sv.close()
 
         total=0
         ok=0
         b = time.time()
-        for i in range(5000,5000+100):
+        for i in range(9901,10000):
             img = imagesT[i]
             #pltshow(img)
             if i==9:

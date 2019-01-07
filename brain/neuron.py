@@ -102,7 +102,11 @@ class neuron:
             else:
                 v=v+int(not s.axon.connectedNeuron.value)
         self.dendritic.value=v
-        self.value=v
+        self.value = self.dendritic.value
+        #if (self.dendritic.value >= len(self.dendritic.synapses)):
+        #    self.value =1
+        #else:
+        #    self.value = 0
         for n in self.axon.outneurons:
             if n.value < v:
                 n.value=v

@@ -92,9 +92,9 @@ class neuron:
 
 
     def calcValue(self):  # zhenghe only 0,1  actived deactived
-        for axon in self.inaxon:
-            self.value = len(self.dendritic.synapses)
-            return
+        #for n in self.inaxon:
+        #    self.value = 1#len(self.dendritic.synapses)
+        #    return
         v=0
         for s in self.dendritic.synapses:
             if(s.polarity>0):
@@ -110,6 +110,7 @@ class neuron:
         for n in self.axon.outneurons:
             if n.value < v:
                 n.value=v
+                n.actived = self
 
 
     def conduct(self,actived):  # step 0

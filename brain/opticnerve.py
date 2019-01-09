@@ -51,6 +51,7 @@ class opticnerve:
                                  for jj in range(ROWS)])  # brains
         self.infrneurons=[] # inference neurons
         self.pallium=[] #for memory促发记忆主要由大脑皮层控制
+        self.palliumidx=[]
         self.knowledges = {}
         self.dendritics = []
         self.COLS = COLS
@@ -167,7 +168,17 @@ class opticnerve:
                     cimg[i,j]=1
         return cimg
 
-    def diff(self,img):
+    def diff(self,img):#3.56 52
+        imgnew=np.zeros((28,28),np.int)
+        ROWS, COLS = img.shape
+        for i in range(1,ROWS-1):
+            for j in range(1,COLS-1):
+                imgnew[i,j]=img[i,j]*9-img[i-1:i+2,j-1:j+2].sum()
+                #if abs(imgnew[i,j])<30*9:#20,28
+                #    imgnew[i,j]=0
+        return imgnew
+
+    def diff_old(self,img):#5.93 61
         ROWS, COLS = img.shape
         self.layers = []
         layer = np.array([[neuron() for ii in range(COLS)]
@@ -192,9 +203,10 @@ class opticnerve:
                 n = layer[i, j]
                 n.value = (lastlayer[i,j].value-n.value/9)
         imgnew=self.outputlayer(layer)
-        pltshow(img,'')
-        pltshow(imgnew,'')
-        print(imgnew)
+        #pltshow(img,'')
+        #pltshow(imgnew,'')
+        #print(imgnew)
+        return  imgnew
 
 
     def createfeellayers(self):
@@ -458,31 +470,62 @@ class opticnerve:
         nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
 
         return nmax
-    def look(self, img):  # get seem overlap for memory
-        if len(self.pallium)==0:
-            self.actived=[]
-            return None
+    def look20190208(self, img):  # get seem overlap for memory
+        #if len(self.pallium)==0:
+        #    self.actived=[]
+        #    return None
 
         self.reset()
         self.input(img)
         results=[]
         for n in self.pallium:
             n.calcValue()
-            if(n.axon.outneurons!=[]):
-                results.append(n)
+            #if(n.axon.outneurons!=[]):
+            #    results.append(n)
             #if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
             #    #return n
             #    results.append(n)
 
 
 
-        list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
-        if len(list1)>0:
-            nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
-        else:
-            return None
+        #list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
+        #if len(list1)>0:
+        #    nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
+        #else:
+        #    return None
+        #return nmax
+        lst = [v for k, v in self.knowledges.items()]
+        list1 = sorted(lst,key = lambda n:n.value,reverse=True)
+        #lst = sorted(list(self.knowledges.items()), key=lambda k: k[1].value, reverse=True)
+        return list1
 
-        return nmax
+    def look(self, img):  # get seem overlap for memory
+
+        self.reset()
+        self.input(img)
+        for i in self.palliumidx:
+            self.pallium[i].calcValue()
+            #print(i,self.pallium[i].value)
+            #if(n.axon.outneurons!=[]):
+            #    results.append(n)
+            #if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
+            #    #return n
+            #    results.append(n)
+
+
+
+        #list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
+        #if len(list1)>0:
+        #    nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
+        #else:
+        #    return None
+        #return nmax
+        lst = [v for k, v in self.knowledges.items()]
+        list1 = sorted(lst,key = lambda n:n.value,reverse=True)
+        #lst = sorted(list(self.knowledges.items()), key=lambda k: k[1].value, reverse=True)
+        return list1
+
+
 
     @with_goto
     def train_1230(self,imgs,labels):
@@ -510,6 +553,7 @@ class opticnerve:
                     alike=alike+nalike
 
         label .testlabel
+
         ok =True
         for i in range(imgs.shape[0]):
             #if labels[i] not in [4,9,7]:
@@ -953,12 +997,12 @@ class opticnerve:
 
     def remember(self, img, label):
         #img=self.sdr(img)
-        nmax = self.look(img)  # found mutipy?
+        nlist = self.look(img)  # found mutipy?
         #remember every thing diffrence
-        if (nmax!=None):
-            lb=nmax.axon.outneurons[0].label
+        if (nlist!=[]):
+            lb=nlist[0].label
             if lb == label: #allow mistake ,train twice
-                return nmax
+                return nlist[0].actived
             #if nmax.dendritic.value==self.ROWS*self.COLS:
             #    return nmax
             #else:
@@ -968,6 +1012,7 @@ class opticnerve:
             # print("Already in,create dendritic only", label)
             nlb = self.knowledges[label]
             n=neuron()
+            self.palliumidx.append(len(self.pallium))
             self.pallium.append(n)
             nlb.inaxon.append(n)
             n.axon.outneurons.append(nlb)
@@ -977,6 +1022,7 @@ class opticnerve:
             self.knowledges[label]=nlb
             nlb.label=label
             n=neuron()
+            self.palliumidx.append(len(self.pallium))
             self.pallium.append(n)
             nlb.inaxon.append(n)
             n.axon.outneurons.append(nlb)
@@ -991,7 +1037,7 @@ class opticnerve:
                     d.connectfrom(self.neurons[i, j].axon, -1)
         return n
 
-    def reform(self):
+    def reform_190208(self):
         dictaxonpolarity = {}
         dictlen = {}
         dictdendritic = {}
@@ -1064,9 +1110,165 @@ class opticnerve:
                 else:
                     d.connectfrom(n.axon,1)
 
+        #
+        listlen=len(list1)
+        for i in range(listlen):
+            for j in range(i,listlen):
+                ka,va=list1[i]
+                kb,vb=list1[j]
+
+
+
+        self.sortpallium()
+
+    @with_goto
+    def reform(self):
+        label .lbtryform
+
+        dictaxonpolarity = {}
+        dictlen = {}
+        dictdendritic = {}
+        dictset={}
+        for i in range(self.ROWS):
+            for j in range(self.COLS):
+                # print("R,C",i,j)
+                axon = self.neurons[i, j].axon
+                if (len(axon.synapses) == 0):
+                    continue
+                #calc axon,polarity in set
+                for s in axon.synapses:
+                    axonpolarity = (axon, s.polarity)
+                    if (axonpolarity in dictaxonpolarity):
+                        dictaxonpolarity[axonpolarity].append(s.dendritic)
+                    else:
+                        dictaxonpolarity[axonpolarity] = [s.dendritic]
+
+        for n in self.pallium:
+            axon = n.axon
+            if (len(axon.synapses) == 0):
+                continue
+            # calc axon,polarity in set
+            for s in axon.synapses:
+                axonpolarity = (axon, s.polarity)
+                if (axonpolarity in dictaxonpolarity):
+                    dictaxonpolarity[axonpolarity].append(s.dendritic)
+                else:
+                    dictaxonpolarity[axonpolarity] = [s.dendritic]
+
+
+        for axonpolarity in dictaxonpolarity:
+            dictlen[str(set(dictaxonpolarity[axonpolarity]))] = len(set(dictaxonpolarity[axonpolarity]))
+            dictdendritic[str(set(dictaxonpolarity[axonpolarity]))] = set(dictaxonpolarity[axonpolarity])
+            if str(set(dictaxonpolarity[axonpolarity])) in dictset:
+                dictset[str(set(dictaxonpolarity[axonpolarity]))].append(axonpolarity)
+            else:
+                dictset[str(set(dictaxonpolarity[axonpolarity]))] = [axonpolarity]
+
+        list1 = sorted(dictlen.items(), key=lambda x: x[1], reverse=True)
+        # print(list1)
+        # blDone=True
+        # for (k, v) in list1: #
+        #     #v=dendrtic cnt
+        #     if (v < 2):# 4: 2*4s+4d => 2s+1d+4s+1d+1n
+        #         break
+        #     dset = dictset[k]
+        #     ncnt=len(dset)
+        #     if(ncnt<2):# dendritic must have up 2 synapses
+        #         continue
+        #     #if(ncnt*v<8):
+        #     #    continue
+        #
+        #     blDone=False
+        #
+        #     ds = dictdendritic[k]
+        #
+        #     n = neuron()
+        #     self.pallium.append(n)
+        #     for (axon,polarity) in dset:
+        #         n.dendritic.connectfrom(axon,polarity)
+        #
+        #     for d in ds:
+        #         for (axon, polarity) in dset:
+        #             d.disconnectfrom(axon,polarity)
+        #         if d.synapses==[]:
+        #             print("No synapses,delete dendritic")
+        #             for ss in d.connectedNeuron.axon.synapses:
+        #                 ss.axon=n.axon
+        #             self.pallium.remove(d.connectedNeuron)
+        #             del d.connectedNeuron
+        #             del d
+        #         else:
+        #             d.connectfrom(n.axon,1)
+        # if blDone==False:#need resum
+        #     print("Re count...")
+        #     goto .lbtryform
+        # #
+        listlen=len(list1)
+        i=0
+        blDone=True
+        while i < listlen-1:
+            for j in range(i+1,listlen):
+                ka,va=list1[i]
+                kb,vb=list1[j]
+                seta=dictdendritic[ka]
+                setb=dictdendritic[kb]
+                daset = dictset[ka]
+                dbset = dictset[kb]
+                ab = seta & setb
+                if len(ab)>5:
+                    print(i,j,len(ab))
+                    #if i==6:
+                    #    i=9999
+                    #    break
+                    n=neuron()
+                    self.pallium.append(n)
+                    d=n.dendritic
+                    for (axon, polarity) in daset:
+                        d.connectfrom(axon, polarity)
+                        for dab in ab:
+                            dab.disconnectfrom(axon,polarity)
+                    for (axon, polarity) in dbset:
+                        d.connectfrom(axon, polarity)
+                        for dab in ab:
+                            dab.disconnectfrom(axon,polarity)
+
+                    for dab in ab:
+                        dab.connectfrom(n.axon,1)# must 1
+
+                    blDone = False
+                i=j+1
+                break
+
+        if blDone == False:
+            print("Do again...")
+            goto .lbtryform
+
+
         self.sortpallium()
 
     def sortpallium(self):
+        vidx=[]
+        lenpallium=len(self.pallium)
+        flag=np.zeros(lenpallium)#flag idxed
+        while len(vidx)<lenpallium:
+            for i in range(lenpallium):
+                if(flag[i]==1):
+                    continue
+
+                n=self.pallium[i]
+                hasin=False
+                for s in n.dendritic.synapses:
+                    if s.axon.connectedNeuron in self.pallium \
+                            and flag[self.pallium.index(s.axon.connectedNeuron)]==0:
+                        hasin = True
+                        break
+                if hasin == False:
+                    vidx.append(i)
+                    flag[i]=1
+                    #self.pallium.remove(n)
+        self.palliumidx=vidx
+        print(vidx)
+    def sortpallium_20190208(self):
         v=[]
         while len(self.pallium)>0:
             for n in self.pallium:
@@ -1238,12 +1440,18 @@ class opticnerve:
         return img
 
     def status(self):
+        #dds=[n.dendritic for n in self.pallium]
+
         s=0
         for n in self.pallium:
             cnt=len(n.dendritic.synapses)
             s+= cnt
             if cnt==1:
                 print ("Only one synapse",n)
+            #else:
+            #    for ds in n.dendritic.synapses:
+            #        print(ds.axon.connectedNeuron.pos,ds.polarity)
+
         cinf=0
         for layer in self.infrneurons:
             for n in layer:

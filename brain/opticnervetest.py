@@ -2,7 +2,7 @@
 
 from opticnerve import *
 from hzk import *
-from mnistdata import *
+from mnistdatabin import *
 from goto import with_goto
 import shelve
 import os
@@ -11,139 +11,137 @@ import time
 
 @with_goto
 def test28x28():
+    TCNT = 10000#1000 75 4  2000 85 7 5000 84 13.5
 
+    sys.setrecursionlimit(10000000)  # for shelve
 
-    if os.path.exists('on1001.sav.dat'):
-        print("Loading on100.sav not run on.__init__  !!!")
-        sv=shelve.open('on100.sav')
+    if os.path.exists('on7000formed.sav.dat'):
+        print("Loading on7000.sav not run on.__init__  !!!")
+        sv=shelve.open('on7000.sav')
         on=sv['on']
         sv.close()
         on.status()
     else:#train
         on = opticnerve(28,28)
 
-    #timages = load_train_images()
-    #tlabels = load_train_labels()
+    #test
+    ROWS=28
+    COLS=28
+    for i in range(ROWS):
+        for j in range(COLS):
+            on.neurons[i,j].pos=(i,j)
+
+
+
+    on.clearneurons()
+    for n in on.pallium[50:100]:
+        n.reappear()
+        #pltshow(on.output(),'0')
+    #exit(1)
+
+    trlabels = load_train_labels()
+    if os.path.exists("trainimgcenter2.npy"):
+        trimagesT=np.load('trainimgcenter2.npy')
+    else:
+        trimages = load_train_images()
+        sp=trimages.shape
+        trimagesT=trimages.T.reshape(sp[1],28,28)
+        for i in range(len(trimagesT)):
+            trimagesT[i]=on.center(trimagesT[i])
+        np.save('trainimgcenter2.npy',trimagesT)
+
+
     labels = load_test_labels()
-    if os.path.exists("testimgcenter256.npy"):
-        imagesT=np.load('testimgcenter256.npy')
+    if os.path.exists("testimgcenter.npy"):
+        imagesT=np.load('testimgcenter.npy')
     else:
         images = load_test_images()
         sp=images.shape
         imagesT=images.T.reshape(sp[1],28,28)
         for i in range(len(imagesT)):
             imagesT[i]=on.center(imagesT[i])
-        np.save('testimgcenter256.npy',imagesT)
+        np.save('testimgcenter.npy',imagesT)
 
 
 
 
-
-    TCNT = 10
+    print(trimagesT.shape)
     a = time.time()
-    for i in range(TCNT):
-        img=imagesT[i]
-        on.diff(img)
+    for _ in range(-1):
+        for i in range(7000,TCNT):
+            img=trimagesT[i]
+            lb=trlabels[i]
+            #img = on.diff(img)
+            #print(img)
+            #pltshow(img,labels[i])
+            #on.feel(img)
+            #img=on.outputlayer(on.layers[1])#200: 0,56 1,51 2,55 3,13
+            #pltshow(img,labels[i])         #400: 0,39 1,53 2,50 3,12
+            #on.remember(img, trlabels[i])     #5000 0,69 1,42
+            #img=on.outputlayer(on.layers[3])
+            on.remember(img, lb)
 
-        #on.feel(img)
-        #img=on.outputlayer(on.layers[0])#200: 0,56 1,51 2,55 3,13
-        #pltshow(img,labels[i])         #400: 0,39 1,53 2,50 3,12
-        on.remember(img, labels[i])     #5000 0,69 1,42
-        #img=on.outputlayer(on.layers[3])
-        #on.remember(img, labels[i])
+            if((i+1)%1000==0):
+                print (i+1)
+                on.status()
+                on.reform()
+                on.status()
+                fn = "on%dformed.sav" % (i+1)
+                print("Save file %s..." % (fn))
+                sv = shelve.open(fn)
+                sv['on'] = on
+                sv.close()
+
 
     b = time.time()
     print("Train cost:", b - a)
-    on.status()
-    #on.reform()
-    #on.status()
 
-    #sys.setrecursionlimit(1000000)  # for shelve
-    #fn = "on%d.sav" % (TCNT)
+    #on.status()
+    on.reform()#85 befor
+    on.status()
+    #fn = "on%dformed.sav" % (TCNT)
     #print("Save file %s..." % (fn))
     #sv = shelve.open(fn)
     #sv['on'] = on
     #sv.close()
 
 
-
-
     ok=0
+    fail=0
     print("Predict...")
     c=time.time()
-    for i in range(9000+0,9000+100):
+    for i in range(000+0,0000+100):
     #for i in [9009,9011,9012]:
         #lb=on.predict(imagesT[i])
         img = imagesT[i]
+        #img = on.diff(img)
         #on.feel(img)
         #img = on.outputlayer(on.layers[2])
-        nmax = on.look(img)
-        lb=nmax.axon.outneurons[0].label
+        if(i==-10):#5
+            xx=10*44
+            nlist = on.look(img)
+            ovalue = nlist[0].value
+            on.reform()
+            nlist = on.look(img)
+            print( ovalue,nlist[0].value)
+            #exit(1)
+
+
+        nlist = on.look(img)
+        lb=nlist[0].label
         #print(lb)
         if(lb==labels[i]):
             ok=ok+1
         else:
+            fail+=1
             print(i,":",labels[i]," predict ",lb)
-            #lb = on.predict(imagesT[i])
+            nlist = on.look(img)
     d = time.time()
-    print(" Right:", ok, '%',d-c)
+    print(" Right:", ok," total:",ok+fail, d-c)
 
-    print (ok)
-    exit(1)
-
-
-
-
-
-    for n in range(len(batchs)):
-        on.train(imagesT[0:TCNT],labels[0:TCNT])
-
-        on.status()
-        #on.reform()  # too slow
-        #print("After reform:",end=" ")
-        #on.status()
-
-        fn="on%d.sav"%(TCNT)
-        print("Save file %s..."%(fn))
-        sv=shelve.open(fn)
-        sv['on']=on
-        sv.close()
-
-        total=0
-        ok=0
-        b = time.time()
-        for i in range(9901,10000):
-            img = imagesT[i]
-            #pltshow(img)
-            if i==9:
-                a=5
-            lb=on.predict(img)
-            #print(labels[i],lb)
-            total = total+1
-            if(labels[i]==lb):
-                ok=ok+1
-            else:
-                #print("")
-                print(i," label:" ,labels[i]," pre:", lb)
-                #for act in on.actived:
-                #    print(act.axon.outneurons[0].label,end=" ")
-                #pltshow(img)
-                #print("====")
-                pass
-
-            #import matplotlib.pyplot as plt
-            #plt.imshow(img, cmap='gray')
-            #plt.show()
-
-        c = time.time()
-        print(c - b)
-
-        print(" Right:",ok,total,int(ok*100/total),'%')
-        if ok!=total:
-            print("####need train again###")
-            #goto .train
-
-
+#>0 58 7.55
+#45 7.3
+#!=0 54
 #result
 #train 500
 #42.6 after think 13.5

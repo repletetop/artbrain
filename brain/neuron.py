@@ -66,7 +66,7 @@ class neuron:
         self.dendritic = dendritic(self)  # axon-dendritic
         self.nbdendritic = dendritic(self)
         self.indendritics = [] #dendritic-dendritic ,get Max one actived
-        self.nagativeaxons = [] # axon-axon hengxiang nagative
+        #self.nagativeaxon = None # axon-axon hengxiang nagative
         self.inaxon = []  # axon->neuron
         self.axon = axon(self)  # output axon
         self.actived = False
@@ -97,8 +97,8 @@ class neuron:
         #    return
         v=0
         for s in self.dendritic.synapses:
-            if(s.polarity>0):
-                v=v+s.axon.connectedNeuron.value
+            if(s.polarity != 0):
+                v=v+s.axon.connectedNeuron.value*s.polarity
             else:
                 v=v+int(not s.axon.connectedNeuron.value)
         self.dendritic.value=v

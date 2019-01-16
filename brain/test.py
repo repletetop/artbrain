@@ -28,6 +28,14 @@ def rotate():
 
 
 if __name__ == "__main__":
+    i=0
+    a=10
+    while i<a:
+        print(i,a)
+        a=a+1
+        i=i+2
+    exit(1)
+
     allhz=hzk()
     i0=hz2img(allhz[0])
     i1=hz2img(allhz[1])

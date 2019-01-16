@@ -11,13 +11,13 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 200#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 10000#1000 75 4  2000 85 7 5000 84 13.5
 
-    sys.setrecursionlimit(10000000)  # for shelve
+    sys.setrecursionlimit(1000000000)  # for shelve
 
-    if os.path.exists('on200formedC.sav.dat'):
-        print("Loading on200formedC.sav not run on.__init__  !!!")
-        sv=shelve.open('on200formedC.sav')
+    if os.path.exists('on7000.sav.dat'):
+        print("Loading  .sav not run on.__init__  !!!")
+        sv=shelve.open('on3000formed.sav')#3000 88%
         on=sv['on']
         sv.close()
         on.status()
@@ -30,11 +30,58 @@ def test28x28():
     for i in range(ROWS):
         for j in range(COLS):
             on.neurons[i,j].pos=(i,j)
+            on.neurons[i, j].id=-1
+    #on.verilog()
+    for i in range(len(on.pallium)):
+        on.pallium[i].id=i
+    tmp=""
+    fd = open('./pallum.v', 'w')#28*28=784
+    strmodule='''
+module pallum(
+    input[783:0] img,
+    output o
+    );
+    '''
 
+    fneuron = open('./neuron.v','w')
+    nset=[]
+
+    print(strmodule,file=fd)
+    for i in on.palliumidx[0:]:
+        n=on.pallium[i]
+        nlen=len(n.dendritic.synapses)
+        if nlen not in nset:
+            nset.append(nlen)
+            modneu="module neuron%d("%(nlen)
+            for x in range(nlen):
+                modneu +="input i%d,"%(x)
+            modneu+="output o);\n assign o=i0"
+            for x in range(1,nlen):
+                modneu+="&i%d"%(x)
+            modneu+=";\nendmodule\n"
+            print(modneu,file=fneuron)
+
+
+        tmp="neuron%d n%d("%(nlen,i)
+        for s in n.dendritic.synapses:
+            if s.axon.connectedNeuron.id == -1:
+                tmp = tmp+"img[%d*28+%d],"%(s.axon.connectedNeuron.pos[0],\
+                      s.axon.connectedNeuron.pos[1])
+            else:
+                tmp = tmp + "neuron%d," % (n.id)
+        tmp=tmp+"o%d);"%(i)
+        #print(tmp)
+        print(tmp,file=fd)
+    print("endmodule",file=fd)
+    fd.close()
+    fneuron.close()
+
+    exit(1)
 
     #on.reform()#85 befor
     #on.status()
     #for i in on.palliumidx[1200:1300]:
+    #for i in range(100,200):
     #    n=on.pallium[i]
     #    on.clearneurons()
     #    n.reappear()
@@ -73,7 +120,7 @@ def test28x28():
     print(trimagesT.shape)
     a = time.time()
     for _ in range(1):
-        for i in range(0,TCNT):
+        for i in range(6000,TCNT):
             img=trimagesT[i]
             lb=trlabels[i]
             #img = on.diff(img)
@@ -86,12 +133,17 @@ def test28x28():
             #img=on.outputlayer(on.layers[3])
             on.remember(img, lb)
 
-            if((i+1)%1000==0):
+            if((i+1)%1000== -1):
                 print (i+1)
-                on.status()
-                on.reform()
-                on.status()
-                fn = "on%dformed.sav" % (i+1)
+                fn = "on%d.sav" % (i+1)
+                print("Save file %s..." % (fn))
+                sv = shelve.open(fn)
+                sv['on'] = on
+                sv.close()
+                #on.status()
+                #on.reform()
+                #on.status()
+                fn = "on%d.sav" % (i+1)
                 print("Save file %s..." % (fn))
                 sv = shelve.open(fn)
                 sv['on'] = on
@@ -101,21 +153,21 @@ def test28x28():
     b = time.time()
     print("Train cost:", b - a)
 
-    on.status()
-    on.reform()#85 befor
-    on.status()
-    fn = "on%dformedC.sav" % (TCNT)
-    print("Save file %s..." % (fn))
-    sv = shelve.open(fn)
-    sv['on'] = on
-    sv.close()
+    #on.status()
+    #on.reform()#85 befor
+    #on.status()
+    #fn = "on%dformedA5.sav" % (TCNT)
+    #print("Save file %s..." % (fn))
+    #sv = shelve.open(fn)
+    #sv['on'] = on
+    #sv.close()
 
 
     ok=0
     fail=0
     print("Predict...")
     c=time.time()
-    for i in range(9000+0,9000+100):
+    for i in range(9900+0,10000):
     #for i in [9009,9011,9012]:
         #lb=on.predict(imagesT[i])
         img = imagesT[i]
@@ -140,9 +192,10 @@ def test28x28():
         else:
             fail+=1
             print(i,":",labels[i]," predict ",lb)
-            nlist = on.look(img)
+            #nlist = on.look(img)
+            #pltshow(img,lb)
     d = time.time()
-    print(" Right:", ok," total:",ok+fail, d-c)
+    print(" Right:", ok," total:",ok+fail,"%.2f%%"%(ok*100/(ok+fail)), d-c)
 
 
 if __name__ == "__main__":

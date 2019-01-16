@@ -10,6 +10,11 @@ from pandas import Series,DataFrame
 from goto import with_goto
 import sys
 
+from multiprocessing import Pool,Manager,Lock
+from multiprocessing.managers import BaseManager
+import multiprocessing
+import time
+import matplotlib.pyplot as plt
 
 '''
 2.促发记忆：这个记忆类型可能我们平时听的不多，但是也非常有用。例如我们读一段文字：
@@ -29,7 +34,7 @@ import sys
 # ROWS=28
 # NEURONSCOUNT = ROWS*COLS
 
-import matplotlib.pyplot as plt
+
 
 
 
@@ -51,6 +56,7 @@ class opticnerve:
                                  for jj in range(ROWS)])  # brains
         self.infrneurons=[] # inference neurons
         self.pallium=[] #for memory促发记忆主要由大脑皮层控制
+        self.Hippocampus=[]
         self.palliumidx=[]
         self.knowledges = {}
         self.dendritics = []
@@ -1294,7 +1300,7 @@ class opticnerve:
     #2 img same count first, pix cout first
 
     @with_goto
-    def reform(self):
+    def reform_B(self):
         lastmaxlen=28*28
 
         #2 img pix count first
@@ -1303,12 +1309,17 @@ class opticnerve:
         dendritics = [n.dendritic for n in self.pallium]
         listlen=len(dendritics)
         maxlen = 0
-        i=0
+        i=-1
         while i < listlen-1:
+            i=i+1
+            if (len(dendritics[i].synapses) < maxlen):
+                continue
+            apa = [(s.axon, s.polarity) for s in dendritics[i].synapses]
+            seta = set(apa)
             for j in range(i+1,listlen):
-                apa=[(s.axon,s.polarity) for s in dendritics[i].synapses]
+                if(len(dendritics[j].synapses)<maxlen):
+                    continue
                 apb = [(s.axon, s.polarity) for s in dendritics[j].synapses]
-                seta=set(apa)
                 setb=set(apb)
                 ab = seta & setb
                 if maxlen<len(ab):
@@ -1318,27 +1329,37 @@ class opticnerve:
                     if(maxlen>=lastmaxlen):
                         i=listlen
                         break
-            i=i+1
 
         lastmaxlen=maxlen
         if(maxlen>3):
             i,j=maxidx
-            apa = [(s.axon, s.polarity) for s in dendritics[i].synapses]
-            apb = [(s.axon, s.polarity) for s in dendritics[j].synapses]
-            seta = set(apa)
-            setb = set(apb)
-            ab = seta & setb
-            print(i,j,len(ab))
-            n=neuron()
-            self.pallium.append(n)
-            d=n.dendritic
-            for (axon, polarity) in ab:
-                d.connectfrom(axon, polarity)
-                dendritics[i].disconnectfrom(axon,polarity)
-                dendritics[j].disconnectfrom(axon, polarity)
+            while i<listlen-1:#process all maxlen
+                if (len(dendritics[i].synapses) < maxlen):
+                    i=i+1
+                    continue
+                apa = [(s.axon, s.polarity) for s in dendritics[i].synapses]
+                seta = set(apa)
+                while j<listlen:
+                    if (len(dendritics[j].synapses) < maxlen):
+                        j=j+1
+                        continue
+                    apb = [(s.axon, s.polarity) for s in dendritics[j].synapses]
+                    setb = set(apb)
+                    ab = seta & setb
+                    if len(ab)>= maxlen:
+                        print("reform:", i, j, len(ab))
+                        n=neuron()
+                        self.pallium.append(n)
+                        d=n.dendritic
+                        for (axon, polarity) in ab:
+                            d.connectfrom(axon, polarity)
+                            dendritics[i].disconnectfrom(axon,polarity)
+                            dendritics[j].disconnectfrom(axon, polarity)
+                        dendritics[i].connectfrom(n.axon,1)# must 1
+                        dendritics[j].connectfrom(n.axon, 1)  # must 1
 
-            dendritics[i].connectfrom(n.axon,1)# must 1
-            dendritics[j].connectfrom(n.axon, 1)  # must 1
+                    j=j+1
+                i=i+1
 
             blDone = False
 
@@ -1369,6 +1390,277 @@ class opticnerve:
         #print(lenp)
 
         self.sortpallium()
+
+    def reformdendritic(self,share_dic,i,mutex):
+        this = share_dic['this']
+        print("this:",this,i)
+        with mutex:
+            this=this+1
+        return
+        j=i+1
+        seta = set([(s.axon, s.polarity) for s in this.pallium[i].dendritic.synapses])
+        setb = set([(s.axon, s.polarity) for s in this.pallium[j].dendritic.synapses])
+        ab = seta & setb
+        if len(ab) >= 3:
+            print("reform:", i, j, len(ab),this.Done)
+            n = neuron()
+            this.pallium.append(n)
+            d = n.dendritic
+            for (axon, polarity) in ab:
+                d.connectfrom(axon, polarity)
+                this.pallium[i].dendritic.disconnectfrom(axon, polarity)
+                this.pallium[j].dendritic.disconnectfrom(axon, polarity)
+            this.pallium[i].dendritic.connectfrom(n.axon, 1)  # must 1
+            this.pallium[j].dendritic.connectfrom(n.axon, 1)  # must 1
+            this.Done = 0
+            print("reform:", i, j, len(ab),this.Done)
+
+
+    @with_goto
+    def reform_mp(self,share_dic,mutex):
+        m = Manager()  # 实现共享，由于字典是共享的字典，所以得加个锁
+        share_dic = m.dict({'this': 1})
+        mutex = Lock()
+
+        # 2 img pix count first
+        maxlen = 3
+
+
+        t_start = time.time()
+
+        label.lbtryform
+        listlen = len(self.pallium)
+
+
+        self.Done = 1
+        print("Done.value",self.Done)
+
+        pool = Pool(3)
+
+        i = -2
+        while i < listlen - 1-2:  # process all maxlen
+            i=i+2
+            if (len(self.pallium[i].dendritic.synapses) < maxlen):
+                continue
+            if (len(self.pallium[+1].dendritic.synapses) < maxlen):
+                continue
+            pool.apply_async(func=self.reformdendritic, args=(share_dic,i,mutex ))  # 维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
+
+        pool.close()
+        pool.join()  # 进程池中进程执行完毕后再关闭，如果注释，那么程序直接关闭。
+        pool.terminate()
+
+        if self.Done == 0:
+            print("Do again...")
+            goto.lbtryform
+
+        t_end = time.time()
+        t = t_end - t_start
+        print('the program time is :%s' % t)
+
+        #have some error
+        # # delete on snapse neuron
+        # lenp = len(self.pallium)
+        # for i in range(lenp - 1, -1, -1):
+        #     n = self.pallium[i]
+        #     if len(n.dendritic.synapses) == 1:
+        #         ns = n.dendritic.synapses[0]
+        #         if ns.polarity == 1:
+        #             print("one synapse, delete it.")
+        #             for s in n.axon.synapses:
+        #                 d = s.dendritic
+        #                 d.disconnect(s)
+        #                 d.connectfrom(ns.axon, ns.polarity * s.polarity)
+        #             n.dendritic.disconnect(ns)
+        #             self.pallium.remove(n)
+        #             del n
+        #         else:
+        #             print("??one synapse but polarity=", ns.polarity)
+
+        self.sortpallium()
+
+
+    @with_goto
+    def reform_OK(self):
+        #2 img pix count first
+        maxlen=3
+
+
+        label .lbtryform
+        blDone = True
+
+        listlen=len(self.pallium)
+        i=0
+
+        while i<listlen-1:#process all maxlen
+            if (len(self.pallium[i].dendritic.synapses) < maxlen):
+                i=i+1
+                continue
+            seta = set([(s.axon, s.polarity) for s in self.pallium[i].dendritic.synapses])
+            j=i+1
+            while j<listlen:
+                if (len(self.pallium[j].dendritic.synapses) < maxlen):
+                    j=j+1
+                    continue
+                setb = set([(s.axon, s.polarity) for s in self.pallium[j].dendritic.synapses])
+                ab = seta & setb
+                if len(ab)>= maxlen:
+                    print("reform:", i, j, len(ab))
+                    n=neuron()
+                    self.pallium.append(n)
+                    d=n.dendritic
+                    for (axon, polarity) in ab:
+                        d.connectfrom(axon, polarity)
+                        self.pallium[i].dendritic.disconnectfrom(axon,polarity)
+                        self.pallium[j].dendritic.disconnectfrom(axon, polarity)
+                    self.pallium[i].dendritic.connectfrom(n.axon,1)# must 1
+                    self.pallium[j].dendritic.connectfrom(n.axon, 1)  # must 1
+
+                    blDone = False
+                    listlen+=1
+                    break# seta already changed so break let i++
+
+                j=j+1
+            i=i+2
+
+
+
+        if blDone == False:
+            print("Do again...")
+            goto .lbtryform
+
+        self.reduce()
+        self.sortpallium()
+
+    @with_goto
+    def reform_ok8(self):
+        #2 img pix count first
+        maxlen=5
+
+
+        label .lbtryform
+        blDone = True
+
+        listlen=len(self.pallium)
+        i=0
+
+        while i<listlen-1:#process all maxlen
+            if (len(self.pallium[i].dendritic.synapses) < maxlen*2):
+                i=i+1
+                continue
+            seta = set([(s.axon, s.polarity) for s in self.pallium[i].dendritic.synapses])
+            j=i+1
+            while j<listlen:
+                if (len(self.pallium[j].dendritic.synapses) < maxlen*2):
+                    j=j+1
+                    continue
+                setb = set([(s.axon, s.polarity) for s in self.pallium[j].dendritic.synapses])
+                ab = seta & setb
+                if len(ab)>= maxlen and len(seta)-len(ab)>maxlen and len(setb)-len(ab)>maxlen:
+                    print("reform:", i, j, len(ab))
+                    n=neuron()
+                    self.pallium.append(n)
+                    d=n.dendritic
+                    for (axon, polarity) in ab:
+                        d.connectfrom(axon, polarity)
+                        self.pallium[i].dendritic.disconnectfrom(axon,polarity)
+                        self.pallium[j].dendritic.disconnectfrom(axon, polarity)
+                    self.pallium[i].dendritic.connectfrom(n.axon,1)# must 1
+                    self.pallium[j].dendritic.connectfrom(n.axon, 1)  # must 1
+
+                    blDone = False
+                    listlen+=1
+                    break# seta already changed so break let i++
+
+                j=j+1
+            i=i+2
+
+
+
+        if blDone == False:
+            print("Do again...")
+            goto .lbtryform
+
+        self.reduce()
+        self.sortpallium()
+
+    @with_goto
+    def reform(self):#add Hippocampus
+        #2 img pix count first
+        maxlen=5
+
+
+        label .lbtryform
+        blDone = True
+
+        listlen=len(self.pallium)
+        i=0
+
+        while i<listlen-1:#process all maxlen
+            if (len(self.pallium[i].dendritic.synapses) < maxlen*2):
+                i=i+1
+                continue
+            seta = set([(s.axon, s.polarity) for s in self.pallium[i].dendritic.synapses])
+            j=i+1
+            while j<listlen:
+                if (len(self.pallium[j].dendritic.synapses) < maxlen*2):
+                    j=j+1
+                    continue
+                setb = set([(s.axon, s.polarity) for s in self.pallium[j].dendritic.synapses])
+                ab = seta & setb
+                if len(ab)>= maxlen and len(seta)-len(ab)>maxlen and len(setb)-len(ab)>maxlen:
+                    print("reform:", i, j, len(ab))
+                    n=neuron()
+                    self.pallium.append(n)
+                    d=n.dendritic
+                    for (axon, polarity) in ab:
+                        d.connectfrom(axon, polarity)
+                        self.pallium[i].dendritic.disconnectfrom(axon,polarity)
+                        self.pallium[j].dendritic.disconnectfrom(axon, polarity)
+                    self.pallium[i].dendritic.connectfrom(n.axon,1)# must 1
+                    self.pallium[j].dendritic.connectfrom(n.axon, 1)  # must 1
+
+                    blDone = False
+                    listlen+=1
+                    break# seta already changed so break let i++
+
+                j=j+1
+            i=i+2
+
+
+
+        if blDone == False:
+            print("Do again...")
+            goto .lbtryform
+
+        self.reduce()
+        self.sortpallium()
+    def reduce(self):
+        #have some error!!!!!!
+        #delete on snapse neuron
+        lenp=len(self.pallium)
+        for i in range(lenp-1,-1,-1):
+            #if i==501:
+            #    xxx=555
+            n=self.pallium[i]
+            if len(n.dendritic.synapses)==1:
+                ns=n.dendritic.synapses[0]
+                if ns.polarity==1:
+                    print("one synapse, delete it.")
+                    if(n.axon.outneurons!=[]):
+                        print("outneurons != []")
+                        continue
+
+                    synapses=n.axon.synapses.copy()
+                    for s in synapses:
+                        d=s.dendritic
+                        d.connectfrom(ns.axon,s.polarity)
+                        d.disconnectfrom(s.axon,s.polarity)
+                    n.dendritic.disconnect(ns)
+                    self.pallium.remove(n)
+                    del n
+                else:
+                    print("??one synapse but polarity=",ns.polarity)
 
     def sortpallium(self):
         print("Sorting...")

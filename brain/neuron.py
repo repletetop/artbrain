@@ -66,7 +66,7 @@ class neuron:
         self.dendritic = dendritic(self)  # axon-dendritic
         self.nbdendritic = dendritic(self)
         self.indendritics = [] #dendritic-dendritic ,get Max one actived
-        #self.nagativeaxon = None # axon-axon hengxiang nagative
+        self.nagativeaxons = [] # axon-axon hengxiang nagative
         self.inaxon = []  # axon->neuron
         self.axon = axon(self)  # output axon
         self.actived = False

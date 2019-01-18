@@ -11,13 +11,13 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 10000#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 3000#1000 75 4  2000 85 7 5000 84 13.5
 
     sys.setrecursionlimit(1000000000)  # for shelve
 
     if os.path.exists('on7000.sav.dat'):
         print("Loading  .sav not run on.__init__  !!!")
-        sv=shelve.open('on3000formed.sav')#3000 88%
+        sv=shelve.open('on3000formedA5.sav')#3000 88%
         on=sv['on']
         sv.close()
         on.status()
@@ -39,7 +39,16 @@ def test28x28():
     strmodule='''
 module pallum(
     input[783:0] img,
-    output o
+    output reg[15:0] num0,
+    output reg[15:0] num1,
+    output reg[15:0] num2,
+    output reg[15:0] num3,
+    output reg[15:0] num4,
+    output reg[15:0] num5,
+    output reg[15:0] num6,
+    output reg[15:0] num7,
+    output reg[15:0] num8,
+    output reg[15:0] num9
     );
     '''
 
@@ -57,21 +66,38 @@ module pallum(
                 modneu +="input i%d,"%(x)
             modneu+="output o);\n assign o=i0"
             for x in range(1,nlen):
-                modneu+="&i%d"%(x)
+                modneu+="+ai%d"%(x)
             modneu+=";\nendmodule\n"
             print(modneu,file=fneuron)
 
 
-        tmp="neuron%d n%d("%(nlen,i)
+        tmp="wire o%d;\nneuron%d nu%d("%(i,nlen,i)
         for s in n.dendritic.synapses:
-            if s.axon.connectedNeuron.id == -1:
-                tmp = tmp+"img[%d*28+%d],"%(s.axon.connectedNeuron.pos[0],\
-                      s.axon.connectedNeuron.pos[1])
+            npre=s.axon.connectedNeuron
+            if npre.id == -1:
+                tmp = tmp+"img[%d*28+%d],"%(npre.pos[0], \
+                                            npre.pos[1])
             else:
-                tmp = tmp + "neuron%d," % (n.id)
+                tmp = tmp + "o%d," % (npre.id)
+
         tmp=tmp+"o%d);"%(i)
         #print(tmp)
         print(tmp,file=fd)
+        if(n.axon.outneurons!=[]):
+            label=n.axon.outneurons[0].label
+'''
+always@(oid)
+begin 
+  if (oid>numlabel)
+    numlabel=oid
+'''
+            tmp = '''
+always@(o%d)
+begin
+  if (o%d>num%s)
+    num%s=o%d
+            '''%(i,i,label,label,i)
+
     print("endmodule",file=fd)
     fd.close()
     fneuron.close()
@@ -119,7 +145,7 @@ module pallum(
 
     print(trimagesT.shape)
     a = time.time()
-    for _ in range(1):
+    for _ in range(-1):
         for i in range(6000,TCNT):
             img=trimagesT[i]
             lb=trlabels[i]
@@ -153,14 +179,14 @@ module pallum(
     b = time.time()
     print("Train cost:", b - a)
 
-    #on.status()
-    #on.reform()#85 befor
-    #on.status()
-    #fn = "on%dformedA5.sav" % (TCNT)
-    #print("Save file %s..." % (fn))
-    #sv = shelve.open(fn)
-    #sv['on'] = on
-    #sv.close()
+    on.status()
+    on.reform()#85 befor
+    on.status()
+    fn = "on%dformedA5.sav" % (TCNT)
+    print("Save file %s..." % (fn))
+    sv = shelve.open(fn)
+    sv['on'] = on
+    sv.close()
 
 
     ok=0

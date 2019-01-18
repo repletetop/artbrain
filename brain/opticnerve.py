@@ -1086,6 +1086,9 @@ class opticnerve:
                     d.connectfrom(self.neurons[i, j].axon, 1)
                 else:#negative
                     d.connectfrom(self.neurons[i, j].axon, 0)
+
+        ## remember pos
+        #n.r=0,0,0 n.c=0,1,2=>[0,0 0,1 0,2]
         return n
 
     def reform_190208(self):

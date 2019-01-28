@@ -11,11 +11,11 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 3000#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 100#1000 75 4  2000 85 7 5000 84 13.5
 
     sys.setrecursionlimit(1000000000)  # for shelve
 
-    if os.path.exists('on7000.sav.dat'):
+    if os.path.exists('-on7000.sav.dat'):
         print("Loading  .sav not run on.__init__  !!!")
         sv=shelve.open('on3000formedA5.sav')#3000 88%
         on=sv['on']
@@ -24,85 +24,9 @@ def test28x28():
     else:#train
         on = opticnerve(28,28)
 
-    #test
-    ROWS=28
-    COLS=28
-    for i in range(ROWS):
-        for j in range(COLS):
-            on.neurons[i,j].pos=(i,j)
-            on.neurons[i, j].id=-1
-    #on.verilog()
-    for i in range(len(on.pallium)):
-        on.pallium[i].id=i
-    tmp=""
-    fd = open('./pallum.v', 'w')#28*28=784
-    strmodule='''
-module pallum(
-    input[783:0] img,
-    output reg[15:0] num0,
-    output reg[15:0] num1,
-    output reg[15:0] num2,
-    output reg[15:0] num3,
-    output reg[15:0] num4,
-    output reg[15:0] num5,
-    output reg[15:0] num6,
-    output reg[15:0] num7,
-    output reg[15:0] num8,
-    output reg[15:0] num9
-    );
-    '''
-
-    fneuron = open('./neuron.v','w')
-    nset=[]
-
-    print(strmodule,file=fd)
-    for i in on.palliumidx[0:]:
-        n=on.pallium[i]
-        nlen=len(n.dendritic.synapses)
-        if nlen not in nset:
-            nset.append(nlen)
-            modneu="module neuron%d("%(nlen)
-            for x in range(nlen):
-                modneu +="input i%d,"%(x)
-            modneu+="output o);\n assign o=i0"
-            for x in range(1,nlen):
-                modneu+="+ai%d"%(x)
-            modneu+=";\nendmodule\n"
-            print(modneu,file=fneuron)
-
-
-        tmp="wire o%d;\nneuron%d nu%d("%(i,nlen,i)
-        for s in n.dendritic.synapses:
-            npre=s.axon.connectedNeuron
-            if npre.id == -1:
-                tmp = tmp+"img[%d*28+%d],"%(npre.pos[0], \
-                                            npre.pos[1])
-            else:
-                tmp = tmp + "o%d," % (npre.id)
-
-        tmp=tmp+"o%d);"%(i)
-        #print(tmp)
-        print(tmp,file=fd)
-        if(n.axon.outneurons!=[]):
-            label=n.axon.outneurons[0].label
-'''
-always@(oid)
-begin 
-  if (oid>numlabel)
-    numlabel=oid
-'''
-            tmp = '''
-always@(o%d)
-begin
-  if (o%d>num%s)
-    num%s=o%d
-            '''%(i,i,label,label,i)
-
-    print("endmodule",file=fd)
-    fd.close()
-    fneuron.close()
-
-    exit(1)
+    #on.genverilog()
+    #on.gencpp()
+    #exit(1)
 
     #on.reform()#85 befor
     #on.status()
@@ -127,15 +51,15 @@ begin
 
 
     labels = load_test_labels()
-    if os.path.exists("testimgcenter.npy"):
+    if os.path.exists("-testimgcenter.npy"):
         imagesT=np.load('testimgcenter.npy')
     else:
         images = load_test_images()
         sp=images.shape
         imagesT=images.T.reshape(sp[1],28,28)
-        for i in range(len(imagesT)):
-            imagesT[i]=on.center(imagesT[i])
-        np.save('testimgcenter.npy',imagesT)
+        #for i in range(len(imagesT)):
+        #    imagesT[i]=on.center(imagesT[i])
+        #np.save('testimgcenter.npy',imagesT)
 
 
     #pltshow(trimagesT[0],'')
@@ -145,10 +69,10 @@ begin
 
     print(trimagesT.shape)
     a = time.time()
-    for _ in range(-1):
-        for i in range(6000,TCNT):
-            img=trimagesT[i]
-            lb=trlabels[i]
+    for _ in range(1):
+        for i in range(0,TCNT):
+            img=imagesT[i]
+            lb=labels[i]
             #img = on.diff(img)
             #print(img)
             #pltshow(img,labels[i])
@@ -182,18 +106,20 @@ begin
     on.status()
     on.reform()#85 befor
     on.status()
-    fn = "on%dformedA5.sav" % (TCNT)
+    fn = "on%dformed.sav" % (TCNT)
     print("Save file %s..." % (fn))
     sv = shelve.open(fn)
     sv['on'] = on
     sv.close()
+
+    on.gencpp()
 
 
     ok=0
     fail=0
     print("Predict...")
     c=time.time()
-    for i in range(9900+0,10000):
+    for i in range(0,3):
     #for i in [9009,9011,9012]:
         #lb=on.predict(imagesT[i])
         img = imagesT[i]
@@ -217,7 +143,7 @@ begin
             ok=ok+1
         else:
             fail+=1
-            print(i,":",labels[i]," predict ",lb)
+        print(i,":",labels[i]," predict ",lb,nlist[0].actived.value)
             #nlist = on.look(img)
             #pltshow(img,lb)
     d = time.time()

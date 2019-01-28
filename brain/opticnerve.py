@@ -1885,6 +1885,141 @@ class opticnerve:
 
         print("synapses:",s,"pallium:",len(self.pallium),"infnu:",cinf)
         pass
+    def genverilog(self):
+        # test
+        ROWS = 28
+        COLS = 28
+        for i in range(ROWS):
+            for j in range(COLS):
+                self.neurons[i, j].pos = (i, j)
+                self.neurons[i, j].id = -1
+        # on.verilog()
+        for i in range(len(on.pallium)):
+            self.pallium[i].id = i
+        tmp = ""
+        fd = open('./pallum.v', 'w')  # 28*28=784
+        strmodule = '''
+        module pallum(
+            input[783:0] img,
+            output reg[15:0] num0,
+            output reg[15:0] num1,
+            output reg[15:0] num2,
+            output reg[15:0] num3,
+            output reg[15:0] num4,
+            output reg[15:0] num5,
+            output reg[15:0] num6,
+            output reg[15:0] num7,
+            output reg[15:0] num8,
+            output reg[15:0] num9
+            );
+            '''
+
+        fneuron = open('./neuron.v', 'w')
+        nset = []
+
+        print(strmodule, file=fd)
+        for i in self.palliumidx[0:]:
+            n = self.pallium[i]
+            nlen = len(n.dendritic.synapses)
+            if nlen not in nset:
+                nset.append(nlen)
+                modneu = "module neuron%d(" % (nlen)
+                for x in range(nlen):
+                    modneu += "input i%d," % (x)
+                modneu += "output o);\n assign o=i0"
+                for x in range(1, nlen):
+                    modneu += "+ai%d" % (x)
+                modneu += ";\nendmodule\n"
+                print(modneu, file=fneuron)
+
+            tmp = "wire o%d;\nneuron%d nu%d(" % (i, nlen, i)
+            for s in n.dendritic.synapses:
+                npre = s.axon.connectedNeuron
+                if npre.id == -1:
+                    tmp = tmp + "img[%d*28+%d]," % (npre.pos[0], \
+                                                    npre.pos[1])
+                else:
+                    tmp = tmp + "o%d," % (npre.id)
+
+            tmp = tmp + "o%d);" % (i)
+            # print(tmp)
+            print(tmp, file=fd)
+            '''
+            always@(oid)
+            begin 
+              if (oid>numlabel)
+                numlabel=oid
+            end
+            '''
+            if (n.axon.outneurons != []):
+                tmp = '''
+        always@(o%d)
+        begin
+          if (o%d>num%s)
+            num%s=o%d;
+        end
+        '''
+                label = n.axon.outneurons[0].label
+                print(tmp % (i, i, label, label, i), file=fd)
+
+        print("endmodule", file=fd)
+        fd.close()
+        fneuron.close()
+    def gencpp(self):
+        ROWS = 28
+        COLS = 28
+        for i in range(ROWS):
+            for j in range(COLS):
+                self.neurons[i, j].pos = (i, j)
+                self.neurons[i, j].id = -1
+        for i in range(len(self.pallium)):
+            self.pallium[i].id = i
+        tmp = ""
+        fd = open('./pallum.cpp', 'w')  # 28*28=784
+        strmodule = '''
+#include "ap_int.h"
+#include "pallum.h"
+#include "topone.h"
+ap_uint<4> pallum(ap_uint<784> img){
+int n0=0,n1=0,n2=0,n3=0,n4=0,n5=0,n6=0,n7=0,n8=0,n9=0;
+            '''
+
+        nset = []
+
+        print(strmodule, file=fd)
+        for i in self.palliumidx[0:]:
+            n = self.pallium[i]
+
+            tmp = "int o%d = " % (i)
+            for s in n.dendritic.synapses:
+                npre = s.axon.connectedNeuron
+                if (s.polarity != 0):
+                    #v = v + s.axon.connectedNeuron.value * s.polarity
+                    if npre.id == -1:
+                        tmp = tmp + "img[%d*28+%d]+" % (npre.pos[0], \
+                                                        npre.pos[1])
+                    else:
+                        tmp = tmp + "o%d+" % (npre.id)
+                else:
+                    #v = v + int(not s.axon.connectedNeuron.value)
+                    if npre.id == -1:
+                        tmp = tmp + "int(!(img[%d*28+%d]))+" % (npre.pos[0], \
+                                                        npre.pos[1])
+                    else:
+                        tmp = tmp + "int(!(o%d))+" % (npre.id)
+
+            if(tmp[-1]=="+"):
+                tmp=tmp[0:len(tmp)-1]
+            tmp=tmp+";"
+            # print(tmp)
+            print(tmp, file=fd)
+            if (n.axon.outneurons != []):
+                label = n.axon.outneurons[0].label
+                tmp = " if (o%d>n%s) n%s=o%d;"%(i,label,label,i)
+                print(tmp , file=fd)
+        tmp = "return topone(n0,n1,n2,n3,n4,n5,n6,n7,n8,n9);}"
+        print(tmp, file=fd)
+        fd.close()
 
 
 if __name__ == "__main__":

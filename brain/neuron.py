@@ -58,6 +58,7 @@ class synapse:
         self.polarity = polarity
         self.axon = axon
         self.dendritic = dendritic
+        self.actived = False
 
 
 class neuron:
@@ -95,18 +96,27 @@ class neuron:
         #for n in self.inaxon:
         #    self.value = 1#len(self.dendritic.synapses)
         #    return
+        MINLEN=10
         v=0
         for s in self.dendritic.synapses:
             if(s.polarity != 0):
-                v=v+s.axon.connectedNeuron.value*s.polarity
+                vs=s.axon.connectedNeuron.value*s.polarity
+                if s.axon.connectedNeuron.value >= len(s.axon.connectedNeuron.dendritic.synapses):
+                    s.actived = True
+                else:
+                    s.actived = False
             else:
-                v=v+int(not s.axon.connectedNeuron.value)
-        self.dendritic.value=v
-        self.value = self.dendritic.value
-        #if (self.dendritic.value >= len(self.dendritic.synapses)):
-        #    self.value =1
-        #else:
-        #    self.value = 0
+                vs=int(not s.axon.connectedNeuron.value)
+                if vs > 0:
+                    s.actived = True
+                else:
+                    s.actived = False
+
+            v=v+vs
+
+        #self.dendritic.value=v
+        self.value = v#self.dendritic.value
+
         for n in self.axon.outneurons:
             if n.value < v:
                 n.value=v

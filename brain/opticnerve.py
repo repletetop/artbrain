@@ -66,6 +66,7 @@ class opticnerve:
         self.createfeellayers()
 
 
+
     def save(self):  #
         d = shelve.open("opticnv")
         # d['neurons']=self.neurons
@@ -102,6 +103,7 @@ class opticnerve:
 
         self.keys = list(self.knowledges.keys())
         self.values = list(self.knowledges.values())
+
 
     def center(self, image):
         mn=image
@@ -497,6 +499,7 @@ class opticnerve:
             for j in range(c):
                 # if img[i, j]!=0:
                 self.neurons[i, j].value = img[i, j]
+
                 #self.neurons[i, j].conduct()
     def conduct(self):
         for i in range(self.ROWS):
@@ -554,26 +557,15 @@ class opticnerve:
 
         self.reset()
         self.input(img)
+
         for i in self.palliumidx:
-            self.pallium[i].calcValue()
-            #print(i,self.pallium[i].value)
-            #if(n.axon.outneurons!=[]):
-            #    results.append(n)
-            #if(n.axon.outneurons!=[] and n.dendritic.value>=len(n.dendritic.synapses)):
-            #    #return n
-            #    results.append(n)
+            n=self.pallium[i]
+            n.calcValue()
 
-
-
-        #list1 = sorted(results, key=lambda n: n.dendritic.value, reverse=True)
-        #if len(list1)>0:
-        #    nmax=list1[0]# may be mut, not top, how can i do? = .value=28*28
-        #else:
-        #    return None
-        #return nmax
         lst = [v for k, v in self.knowledges.items()]
         list1 = sorted(lst,key = lambda n:n.value,reverse=True)
         #lst = sorted(list(self.knowledges.items()), key=lambda k: k[1].value, reverse=True)
+
         return list1
 
 
@@ -1045,15 +1037,45 @@ class opticnerve:
         #for a in alike:
         #    a.memory.clear()
         return alike
+    def neuronsplit(self,actneuron):# 神经元分裂
+        deactived = [s for s in actneuron.dendritic.synapses if s.actived == False]
+        if (deactived != [] and len(actneuron.dendritic.synapses)-len(deactived)>=2 ):
+            #print(len(deactived),len(actneuron.dendritic.synapses)-len(deactived))
+            #test distance
+            newn = neuron()
+            for s in actneuron.dendritic.synapses:
+                if s.actived == True:
+                    s.dendritic = newn.dendritic
+                    newn.dendritic.synapses.append(s)
+            actneuron.dendritic.synapses = deactived;
+            actneuron.dendritic.connectfrom(newn.axon, 1)
+            # self.sortpallium()
+            # insert by idx
+            self.palliumidx
+            pidx = self.pallium.index(actneuron)
+            iidx = self.palliumidx.index(pidx)
+            self.palliumidx.insert(iidx, len(self.pallium))
+            self.pallium.append(newn)
+            return newn
+        return None
 
-    def remember(self, img, label):
+    def treesplit(self,root):## 神经元分裂
+        cret=self.neuronsplit(root)
+        for s in root.dendritic.synapses:
+            ret = self.treesplit(s.axon.connectedNeuron)
+
+    def remember(self, img, label,idx):
         #img=self.sdr(img)
         nlist = self.look(img)  # found mutipy?
         #remember every thing diffrence
         if (nlist!=[]):
             lb=nlist[0].label
+            #print(idx,[n.value for n in nlist])
             if lb == label: #allow mistake ,train twice
-                return nlist[0].actived
+                actneuron = nlist[0].actived
+                # 神经元分裂
+                self.treesplit(actneuron)
+                return actneuron
             #if nmax.dendritic.value==self.ROWS*self.COLS:
             #    return nmax
             #else:
@@ -1079,6 +1101,9 @@ class opticnerve:
             n.axon.outneurons.append(nlb)
             d=n.dendritic
 
+        #get leaf
+        #split tree
+        #a b c
         r, c = img.shape
         for i in range(r):
             for j in range(c):
@@ -1666,7 +1691,7 @@ class opticnerve:
                     print("??one synapse but polarity=",ns.polarity)
 
     def sortpallium(self):
-        print("Sorting...")
+        #print("Sorting...")
         vidx=[]
         lenpallium=len(self.pallium)
         flag=np.zeros(lenpallium)#flag idxed
@@ -1687,7 +1712,7 @@ class opticnerve:
                     flag[i]=1
                     #self.pallium.remove(n)
         self.palliumidx=vidx
-        print(vidx)
+        #print(vidx)
     def sortpallium_20190208(self):
         v=[]
         while len(self.pallium)>0:
@@ -1862,7 +1887,6 @@ class opticnerve:
         return img
 
     def status(self):
-        #dds=[n.dendritic for n in self.pallium]
 
         s=0
         for n in self.pallium:

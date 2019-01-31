@@ -11,13 +11,13 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 5000#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 100#1000 75 4  2000 85 7 5000 84 13.5
 
     sys.setrecursionlimit(1000000000)  # for shelve
 
-    if os.path.exists('on7000.sav.dat'):
+    if os.path.exists('sav/on7000.sav.dat'):
         print("Loading  .sav not run on.__init__  !!!")
-        sv=shelve.open('on1000.sav')#3000 88%
+        sv=shelve.open('sav/on1000formed.sav')#3000 88%
         on=sv['on']
         sv.close()
         on.status()
@@ -35,21 +35,32 @@ def test28x28():
     #sv['on'] = on
     #sv.close()
     #on.status()
-    #for n in on.knowledges[0].inaxon:
-    #    on.clearneurons()
-    #    n.reappear()
-    #    img=on.output()[:,5:22]
-     #   if(True or img.sum()>20 and img.sum()<100):
-    #        print(img.sum,img)
-    #        pltshow(img,'0')
-    #for i in range(len(on.pallium)):
+    for n in on.knowledges[9].inaxon:
+        on.clearneurons()
+        n.reappear()
+        img=on.output()[:,5:22]
+        if(True or (img.sum()>20 )):
+            #print(img.sum,img)
+            pltshow(img,'000000000')
+            #continue
+            for s in n.dendritic.synapses:
+                on.clearneurons()
+                s.axon.connectedNeuron.reappear()
+                img=on.output()
+                if img.sum() > 5:
+                    pltshow(img,'0')
+                #else:
+                #    print(s.axon)
+
+    #ttl=len(on.pallium)
+    #for i in range(7500,7703):
     #    #print(i)
-    #    n=on.pallium[i]
+    #    n=on.pallium[on.palliumidx[i]]
     #    on.clearneurons()
     #    n.reappear()
     #    img=on.output()[:,5:22]
-    #    if(img.sum()>20 and img.sum()<100):
-    #        print(img.sum,img)
+    #    if(img.sum()>20 ):
+    #        #print(img.sum,img)
     #        pltshow(img,'0')
     #exit(1)
 
@@ -83,7 +94,7 @@ def test28x28():
 
     print(trimagesT.shape)
     a = time.time()
-    for _ in range(-1):
+    for _ in range(3):
         for i in range(0,TCNT):
             img=trimagesT[i]
             lb=trlabels[i]
@@ -100,11 +111,11 @@ def test28x28():
             if i==56:
                 xxx=555
                 #continue
-            on.remember(img, lb,i)
+            on.remember(img, lb)
 
             if((i+1)%1000== -1):
                 print (i+1)
-                fn = "on%d.sav" % (i+1)
+                fn = "sav\on%d.sav" % (i+1)
                 print("Save file %s..." % (fn))
                 sv = shelve.open(fn)
                 sv['on'] = on
@@ -123,19 +134,19 @@ def test28x28():
     print("Train cost:", b - a)
 
     on.status()
-    #fn = "on%d.sav" % (TCNT)
-    #print("Save file %s..." % (fn))
-    #sv = shelve.open(fn)
-    #sv['on'] = on
-    #sv.close()
-
-    #on.reform()#85 befor
-    #on.status()
-    #fn = "on%dformed.sav" % (TCNT)
-    #print("Save file %s..." % (fn))
-    #sv = shelve.open(fn)
-    #sv['on'] = on
-    #sv.close()
+#    fn = "sav/on%d.sav" % (TCNT)
+#    print("Save file %s..." % (fn))
+#    sv = shelve.open(fn)
+#    sv['on'] = on
+#    sv.close()
+#
+#    on.reform()#85 befor
+#    on.status()
+#    fn = "sav/son%dformed.sav" % (TCNT)
+#    print("Save file %s..." % (fn))
+#    sv = shelve.open(fn)
+#    sv['on'] = on
+#    sv.close()
 
     #on.gencpp()
 
@@ -169,14 +180,55 @@ def test28x28():
             ok=ok+1
         else:
             fail+=1
-            print(i,":",label," predict ",lb,nlist[0].actived.value)
+            print(i,":",label," predict ",lb,nlist[0].actor.value)
             #nlist = on.look(img)
             #pltshow(img,lb)
     d = time.time()
     print(" Right:", ok," total:",ok+fail,"%.2f%%"%(ok*100/(ok+fail)), d-c)
 
+def test3x3():
+    on = opticnerve(3,3)
+    img1=np.array([[0,1,0],
+                   [0,1,0],
+                   [0,1,0]])
+    img2=np.array([[0,0,0],
+                   [1,1,1],
+                   [0,0,0]])
+    img3=np.array([[0,1,0],
+                   [1,1,1],
+                   [0,1,0]])
+    img4=np.array([[0,1,0],
+                   [1,0,1],
+                   [0,1,0]])
+    img5=np.array([[0,1,0],
+                   [0,1,0],
+                   [0,0,0]])
+    img6=np.array([[0,0,0],
+                   [0,1,0],
+                   [0,1,0]])
+
+    img7=np.array([[0,0,0],
+                   [1,1,0],
+                   [0,0,0]])
+    img8=np.array([[0,0,0],
+                   [0,1,1],
+                   [0,0,0]])
+
+
+    on.remember(img1,"|")
+    on.remember(img2,'-')
+    on.remember(img3,'+')
+    #on.think()  # too slow
+    lbs = on.predict(img4)
+    #lbs = on.predict(img8)
+    print(lbs)
+    #on.recall('-')
+    #on.think()
+    #lbs = on.predict(img4)
+    #print(lbs)
+pass
 
 if __name__ == "__main__":
     test28x28()
-   # test3x3()
+   #test3x3()
    #testfeel()

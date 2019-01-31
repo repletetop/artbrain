@@ -98,29 +98,32 @@ class neuron:
         #    return
         MINLEN=10
         v=0
+        blActived = True
         for s in self.dendritic.synapses:
             if(s.polarity != 0):
                 vs=s.axon.connectedNeuron.value*s.polarity
-                if s.axon.connectedNeuron.value >= len(s.axon.connectedNeuron.dendritic.synapses):
+                if vs>0 and s.axon.connectedNeuron.actived :
                     s.actived = True
                 else:
                     s.actived = False
+                    blActived = False
             else:
                 vs=int(not s.axon.connectedNeuron.value)
                 if vs > 0:
                     s.actived = True
                 else:
                     s.actived = False
+                    blActived = False
 
             v=v+vs
-
+        self.actived = blActived
         #self.dendritic.value=v
         self.value = v#self.dendritic.value
 
         for n in self.axon.outneurons:
             if n.value < v:
                 n.value=v
-                n.actived = self
+                n.actor = self
 
 
     def conduct(self,actived):  # step 0

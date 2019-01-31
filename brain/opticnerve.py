@@ -54,6 +54,11 @@ class opticnerve:
     def __init__(self, ROWS, COLS):
         self.neurons = np.array([[neuron() for ii in range(COLS)]
                                  for jj in range(ROWS)])  # brains
+        for i in range(ROWS):
+            for j in range(COLS):
+                self.neurons[i, j].pos = (i, j)
+                self.neurons[i, j].id = -1
+
         self.infrneurons=[] # inference neurons
         self.pallium=[] #for memory促发记忆主要由大脑皮层控制
         self.Hippocampus=[]
@@ -499,6 +504,7 @@ class opticnerve:
             for j in range(c):
                 # if img[i, j]!=0:
                 self.neurons[i, j].value = img[i, j]
+                self.neurons[i, j].actived = (img[i,j]!=0)
 
                 #self.neurons[i, j].conduct()
     def conduct(self):
@@ -1037,7 +1043,7 @@ class opticnerve:
         #for a in alike:
         #    a.memory.clear()
         return alike
-    def neuronsplit(self,actneuron):# 神经元分裂
+    def neuronsplit(self,actneuron,acts):# 神经元分裂
         deactived = [s for s in actneuron.dendritic.synapses if s.actived == False]
         if (deactived != [] and len(actneuron.dendritic.synapses)-len(deactived)>=2 ):
             #print(len(deactived),len(actneuron.dendritic.synapses)-len(deactived))
@@ -1056,30 +1062,32 @@ class opticnerve:
             iidx = self.palliumidx.index(pidx)
             self.palliumidx.insert(iidx, len(self.pallium))
             self.pallium.append(newn)
-            return newn
-        return None
+            newn.isRoot=True
+            acts.append(newn)
+        else:
+            for s in actneuron.dendritic.synapses:
+                if s.actived :
+                    s.axon.connectedNeuron.isRoot = (not s.dendritic.connectedNeuron in acts)
+                    acts.append(s.axon.connectedNeuron)
 
-    def treesplit(self,root):## 神经元分裂
-        cret=self.neuronsplit(root)
+
+    def treesplit(self,root,acts):## 神经元分裂
+        self.neuronsplit(root,acts)
         for s in root.dendritic.synapses:
-            ret = self.treesplit(s.axon.connectedNeuron)
+            self.treesplit(s.axon.connectedNeuron,acts)
 
-    def remember(self, img, label,idx):
+    def remember(self, img, label):
         #img=self.sdr(img)
         nlist = self.look(img)  # found mutipy?
         #remember every thing diffrence
+        acts = []
         if (nlist!=[]):
             lb=nlist[0].label
-            #print(idx,[n.value for n in nlist])
+            actneuron = nlist[0].actor
+            # 神经元分裂
+            self.treesplit(actneuron, acts)
             if lb == label: #allow mistake ,train twice
-                actneuron = nlist[0].actived
-                # 神经元分裂
-                self.treesplit(actneuron)
                 return actneuron
-            #if nmax.dendritic.value==self.ROWS*self.COLS:
-            #    return nmax
-            #else:
-            #    print(lb,label,nmax.dendritic.value)
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
@@ -1101,13 +1109,18 @@ class opticnerve:
             n.axon.outneurons.append(nlb)
             d=n.dendritic
 
-        #get leaf
-        #split tree
-        #a b c
+
+        for na in acts:
+            if na.isRoot:
+                d.connectfrom(na.axon,1)
+
         r, c = img.shape
         for i in range(r):
             for j in range(c):
-                if (img[i][j] > 0):#positive
+                if self.neurons[i,j] in acts:
+                    continue
+
+                if (img[i][j] > 0 ):#positive
                     d.connectfrom(self.neurons[i, j].axon, 1)
                 else:#negative
                     d.connectfrom(self.neurons[i, j].axon, 0)
@@ -1913,10 +1926,6 @@ class opticnerve:
         # test
         ROWS = 28
         COLS = 28
-        for i in range(ROWS):
-            for j in range(COLS):
-                self.neurons[i, j].pos = (i, j)
-                self.neurons[i, j].id = -1
         # on.verilog()
         for i in range(len(on.pallium)):
             self.pallium[i].id = i

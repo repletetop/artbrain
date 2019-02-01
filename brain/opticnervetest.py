@@ -11,15 +11,13 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 100#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 30#1000 75 4  2000 85 7 5000 84 13.5
 
     sys.setrecursionlimit(1000000000)  # for shelve
 
     if os.path.exists('sav/on7000.sav.dat'):
         print("Loading  .sav not run on.__init__  !!!")
-        sv=shelve.open('sav/on1000formed.sav')#3000 88%
-        on=sv['on']
-        sv.close()
+        on=loadnerve('sav/on5000formed.sav')
         on.status()
     else:#train
         on = opticnerve(28,28)
@@ -30,28 +28,12 @@ def test28x28():
 
     #on.reform()#85 befor
     #fn = "on%dformed.sav" % (i + 1)
-    #print("Save file %s..." % (fn))
-    #sv = shelve.open(fn)
-    #sv['on'] = on
-    #sv.close()
+    #savenerve(fn)
     #on.status()
-    for n in on.knowledges[9].inaxon:
-        on.clearneurons()
-        n.reappear()
-        img=on.output()[:,5:22]
-        if(True or (img.sum()>20 )):
-            #print(img.sum,img)
-            pltshow(img,'000000000')
-            #continue
-            for s in n.dendritic.synapses:
-                on.clearneurons()
-                s.axon.connectedNeuron.reappear()
-                img=on.output()
-                if img.sum() > 5:
-                    pltshow(img,'0')
-                #else:
-                #    print(s.axon)
-
+    if True:
+        #on.clip()
+        on.status()
+    #exit(1)
     #ttl=len(on.pallium)
     #for i in range(7500,7703):
     #    #print(i)
@@ -94,7 +76,7 @@ def test28x28():
 
     print(trimagesT.shape)
     a = time.time()
-    for _ in range(3):
+    for _ in range(-1):
         for i in range(0,TCNT):
             img=trimagesT[i]
             lb=trlabels[i]
@@ -133,20 +115,14 @@ def test28x28():
     b = time.time()
     print("Train cost:", b - a)
 
-    on.status()
-#    fn = "sav/on%d.sav" % (TCNT)
-#    print("Save file %s..." % (fn))
-#    sv = shelve.open(fn)
-#    sv['on'] = on
-#    sv.close()
-#
-#    on.reform()#85 befor
-#    on.status()
-#    fn = "sav/son%dformed.sav" % (TCNT)
-#    print("Save file %s..." % (fn))
-#    sv = shelve.open(fn)
-#    sv['on'] = on
-#    sv.close()
+
+    #on.status()
+    #fn = "sav/on%d.sav" % (TCNT)
+    #savenerve(fn)
+    #on.reform()#85 befor
+    #on.status()
+    fn = "sav/son%dformed.sav" % (TCNT)
+    #savenerve(fn)
 
     #on.gencpp()
 

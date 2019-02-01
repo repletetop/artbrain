@@ -34,8 +34,14 @@ import matplotlib.pyplot as plt
 # ROWS=28
 # NEURONSCOUNT = ROWS*COLS
 
-
-
+def savenerve(fn):
+    print("Save file %s..." % (fn))
+    sv = shelve.open(fn)
+    sv['on'] = on
+    sv.close()
+def loadnerve(fn):
+    with shelve.open(fn) as sv: #3000 88%
+        return sv['on']
 
 
 def pltshow(img,title):
@@ -1075,6 +1081,8 @@ class opticnerve:
         self.neuronsplit(root,acts)
         for s in root.dendritic.synapses:
             self.treesplit(s.axon.connectedNeuron,acts)
+    def parttree(self,root,active,deactive):
+        pass
 
     def remember(self, img, label):
         #img=self.sdr(img)
@@ -1085,8 +1093,50 @@ class opticnerve:
             lb=nlist[0].label
             actneuron = nlist[0].actor
             # 神经元分裂
+            if actneuron.actived:
+                actneuron.isRoot = True
+                acts.append(actneuron)
             self.treesplit(actneuron, acts)
+
             if lb == label: #allow mistake ,train twice
+                if actneuron.actived:
+                    return actneuron
+                if actneuron.axon.synapses!=[]:
+                    print("Not top neuron,cannot modify")
+
+                #if actneuron.actived:
+                #    actneuron.isRoot=True
+                #    acts.append(actneuron)
+                #self.treesplit(actneuron, acts)
+                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+                #    s=actneuron.dendritic.synapses[i]
+                #    actneuron.dendritic.disconnect(s)
+                #for na in acts:
+                #    if na.isRoot:
+                #        actneuron.dendritic.connectfrom(na.axon, 1)
+                #return actneuron
+
+                #use current acts ,remove leaf*******
+                #self.treesplit(actneuron, acts)
+                #newact=acts[0]
+                #newact.axon.outneuron=nlist[0]
+                #nlist[0].inaxon.remove(actneuron)
+                #remove actneuron
+                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+                #    s=actneuron.dendritic.synapses[i]
+                #    actneuron.dendritic.disconnect(s)
+                #idx=self.pallium.index(actneuron)
+                #pidx=self.palliumidx.index(idx)
+                #self.pallium.remove(actneuron)
+                #self.palliumidx.remove(idx)
+                #for i in range(len(self.palliumidx)):
+                #    if self.palliumidx[i]>idx:
+                #        self.palliumidx[i]=self.palliumidx[i]-1
+
+                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+                #    s  = actneuron.dendritic.synapses[i]
+                #    if s.actived == False:
+                #        actneuron.dendritic.disconnect(s)
                 return actneuron
 
         if (self.knowledges.__contains__(label)):
@@ -1677,7 +1727,6 @@ class opticnerve:
         self.reduce()
         self.sortpallium()
     def reduce(self):
-        #have some error!!!!!!
         #delete on snapse neuron
         lenp=len(self.pallium)
         for i in range(lenp-1,-1,-1):
@@ -1702,6 +1751,40 @@ class opticnerve:
                     del n
                 else:
                     print("??one synapse but polarity=",ns.polarity)
+    def pallumdel(self,actneuron):
+        try:
+            idx = self.pallium.index(actneuron)
+        except ValueError:
+            return
+        print("delete one.")
+        self.pallium.remove(actneuron)
+        pidx=self.palliumidx.index(idx)
+        self.palliumidx.pop(pidx)
+        for i in range(len(self.palliumidx)):
+            if self.palliumidx[i]>idx:
+                self.palliumidx[i]=self.palliumidx[i]-1
+    def clip(self):
+        for k,v in self.knowledges.items():
+            #v=self.knowledges[1]
+            for n in v.inaxon:
+                #self.clearneurons()
+                #n.reappear()
+                #img = self.output()
+                # print(img.sum,img)
+                #pltshow(img, '000000000')
+                # continue
+                for s in n.dendritic.synapses:
+                    self.clearneurons()
+                    s.axon.connectedNeuron.reappear()
+                    img = self.output()#[:,5:22]
+                    if img.sum() <= 1:
+                        #print(img)
+                        # remove s.axon.connectedNeuron
+                        self.pallumdel(s.axon.connectedNeuron)
+                    #else:
+                        #pltshow(img, v.label)
+                        #print(v.label)
+                        #print(img)
 
     def sortpallium(self):
         #print("Sorting...")
@@ -1922,6 +2005,42 @@ class opticnerve:
 
         print("synapses:",s,"pallium:",len(self.pallium),"infnu:",cinf)
         pass
+
+    '''
+    stat = 0
+    always@(stat)begin
+        switch stat
+        case 0:calc reg0 stat++;
+        case 1:reg<= wait....
+    end
+    
+    reg[3:0] ret;
+    assign ap_return=ret;
+    always@(num0,num1,num2,num3,num4,num5,num6,num7,num8,num9)begin
+        if(num0>num1 && num0>num2 && num0>num3 && num0>num4 && num0>num5 && num0>num6 && num0>num7 && num0>num8 && num0>num9)
+            ret=3'b0;
+        else if (num1>num0 && num1>num2 && num1>num3 && num1>num4 && num1>num5 && num1>num6 && num1>num7 && num1>num8 && num1>num9)
+            ret=3'b1;
+        else if (num2>num0 && num2>num1 && num2>num3 && num2>num4 && num2>num5 && num2>num6 && num2>num7 && num2>num8 && num2>num9)
+                ret=3'd2;
+        else if (num3>num0 && num3>num1 && num3>num2 && num3>num4 && num3>num5 && num3>num6 && num3>num7 && num3>num8 && num3>num9)
+                        ret=3'd3;
+        else if (num4>num0 && num4>num1 && num4>num3 && num4>num2 && num4>num5 && num4>num6 && num4>num7 && num4>num8 && num4>num9)
+                                ret=3'd4;
+        else if (num5>num0 && num5>num1 && num5>num3 && num5>num4 && num5>num2 && num5>num6 && num5>num7 && num5>num8 && num5>num9)
+                                        ret=3'd5;
+        else if (num6>num0 && num6>num1 && num6>num3 && num6>num4 && num6>num5 && num6>num6 && num6>num7 && num6>num8 && num6>num9)
+                                                ret=3'd6;
+        else if (num7>num0 && num7>num1 && num7>num3 && num7>num4 && num7>num5 && num7>num6 && num7>num7 && num7>num8 && num7>num9)
+                                                        ret=3'd7;
+        else if (num8>num0 && num8>num1 && num8>num3 && num8>num4 && num8>num5 && num8>num6 && num8>num7 && num8>num2 && num8>num9)
+                                                                ret=3'd8;
+        else if (num9>num0 && num9>num1 && num9>num3 && num9>num4 && num9>num5 && num9>num6 && num9>num7 && num9>num8 && num9>num2)
+                                                                        ret=3'd9;        
+    end
+
+    '''
+
     def genverilog(self):
         # test
         ROWS = 28
@@ -1998,6 +2117,18 @@ class opticnerve:
         print("endmodule", file=fd)
         fd.close()
         fneuron.close()
+    def gencppneuron(self,nlen):
+        modneu = "int n%d(" % (nlen)
+        for x in range(nlen - 1):
+            modneu += "int i%d," % (x)
+        modneu += "int iend){\n "
+        #modneu += "#pragma HLS INLINE off\n"
+        modneu += "return "
+        for x in range(nlen - 1):
+            modneu += "i%d+" % (x)
+        modneu += "iend;}\n "
+        return modneu
+
     def gencpp(self):
         ROWS = 28
         COLS = 28
@@ -2013,44 +2144,87 @@ class opticnerve:
 #include "ap_int.h"
 #include "pallum.h"
 #include "topone.h"
-ap_uint<4> pallum(ap_uint<784> img){
-int n0=0,n1=0,n2=0,n3=0,n4=0,n5=0,n6=0,n7=0,n8=0,n9=0;
+#include "neuron.hpp"
+ap_uint<4> pallum(ap_uint<784> g){
+int nm0=0,nm1=0,nm2=0,nm3=0,nm4=0,nm5=0,nm6=0,nm7=0,nm8=0,nm9=0;
             '''
-
+        fneuron = open('./neuron.hpp','w')
         nset = []
+        MAXARGS=385#385
+        modneu=self.gencppneuron(MAXARGS)
+        print(modneu, file=fneuron)
 
         print(strmodule, file=fd)
         for i in self.palliumidx[0:]:
             n = self.pallium[i]
+            #add neuron
+            nlen = len(n.dendritic.synapses)
+            if nlen%MAXARGS not in nset:
+                nset.append(nlen%MAXARGS)
+                modneu = self.gencppneuron(nlen%MAXARGS)
+                print(modneu, file=fneuron)
 
-            tmp = "int o%d = " % (i)
-            for s in n.dendritic.synapses:
+            mtimes = nlen//MAXARGS
+            for t in range(mtimes):
+                if t==0:
+                    print("Have %d arguments more then Maxargs %d " % (nlen, MAXARGS))
+                    tmp = "int o%d = n%d(" % (i, MAXARGS)
+                else:
+                    tmp += "o%d += n%d(" % (i, MAXARGS)
+
+                for idx in range(MAXARGS):
+                    s = n.dendritic.synapses[MAXARGS*t+idx]
+                    npre = s.axon.connectedNeuron
+                    if (s.polarity != 0):
+                        #v = v + s.axon.connectedNeuron.value * s.polarity
+                        if npre.id == -1:
+                            tmp = tmp + "g[%d*28+%d]," % (npre.pos[0], \
+                                                            npre.pos[1])
+                        else:
+                            tmp = tmp + "o%d," % (npre.id)
+                    else:
+                        #v = v + int(not s.axon.connectedNeuron.value)
+                        if npre.id == -1:
+                            tmp = tmp + "int(!(g[%d*28+%d]))," % (npre.pos[0], \
+                                                            npre.pos[1])
+                        else:
+                            tmp = tmp + "int(!(o%d))," % (npre.id)
+                if (tmp[-1] == ","):
+                    tmp = tmp[0:len(tmp) - 1]
+                tmp = tmp + ");\n"
+                print(tmp)
+            if mtimes>0:
+                tmp += "o%d += n%d(" % (i,nlen%MAXARGS)
+            else:
+                tmp = "int o%d = n%d(" % (i, nlen)
+            for idx in range(nlen%MAXARGS):
+                s = n.dendritic.synapses[MAXARGS*mtimes+idx]
                 npre = s.axon.connectedNeuron
                 if (s.polarity != 0):
                     #v = v + s.axon.connectedNeuron.value * s.polarity
                     if npre.id == -1:
-                        tmp = tmp + "img[%d*28+%d]+" % (npre.pos[0], \
+                        tmp = tmp + "g[%d*28+%d]," % (npre.pos[0], \
                                                         npre.pos[1])
                     else:
-                        tmp = tmp + "o%d+" % (npre.id)
+                        tmp = tmp + "o%d," % (npre.id)
                 else:
                     #v = v + int(not s.axon.connectedNeuron.value)
                     if npre.id == -1:
-                        tmp = tmp + "int(!(img[%d*28+%d]))+" % (npre.pos[0], \
+                        tmp = tmp + "int(!(g[%d*28+%d]))," % (npre.pos[0], \
                                                         npre.pos[1])
                     else:
-                        tmp = tmp + "int(!(o%d))+" % (npre.id)
+                        tmp = tmp + "int(!(o%d))," % (npre.id)
 
-            if(tmp[-1]=="+"):
+            if(tmp[-1]==","):
                 tmp=tmp[0:len(tmp)-1]
-            tmp=tmp+";"
-            # print(tmp)
+            tmp=tmp+");"
+            #print(tmp)
             print(tmp, file=fd)
             if (n.axon.outneurons != []):
                 label = n.axon.outneurons[0].label
-                tmp = " if (o%d>n%s) n%s=o%d;"%(i,label,label,i)
+                tmp = "if(o%d>nm%s)nm%s=o%d;"%(i,label,label,i)
                 print(tmp , file=fd)
-        tmp = "return topone(n0,n1,n2,n3,n4,n5,n6,n7,n8,n9);}"
+        tmp = "return topone(nm0,nm1,nm2,nm3,nm4,nm5,nm6,nm7,nm8,nm9);}"
         print(tmp, file=fd)
         fd.close()
 

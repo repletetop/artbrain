@@ -11,20 +11,20 @@ import time
 
 @with_goto
 def test28x28():
-    TCNT = 30#1000 75 4  2000 85 7 5000 84 13.5
+    TCNT = 100#1000 75 4  2000 85 7 5000 84 13.5
 
     sys.setrecursionlimit(1000000000)  # for shelve
 
     if os.path.exists('sav/on7000.sav.dat'):
         print("Loading  .sav not run on.__init__  !!!")
-        on=loadnerve('sav/on5000formed.sav')
+        on=loadnerve('sav/on100.sav')
+        #on.sortpallium()
         on.status()
     else:#train
         on = opticnerve(28,28)
 
     #on.genverilog()
     #on.gencpp()
-    #exit(1)
 
     #on.reform()#85 befor
     #fn = "on%dformed.sav" % (i + 1)
@@ -68,8 +68,16 @@ def test28x28():
         #    imagesT[i]=on.center(imagesT[i])
         #np.save('testimgcenter.npy',imagesT)
 
+    #p=on.genpy()
+    #ret=p.pallium(trimagesT[2])
+    #print(ret)
+    #exit(1)
 
     #pltshow(trimagesT[0],'')
+    #img=trimagesT[0].astype(np.int32)
+    #print(img.shape)
+    #on.gentf(img)
+    #on.runtf(img)
     #on.conv14(trimagesT[3])
     #exit(1)
 
@@ -77,7 +85,7 @@ def test28x28():
     print(trimagesT.shape)
     a = time.time()
     for _ in range(-1):
-        for i in range(0,TCNT):
+        for i in range(000,TCNT):
             img=trimagesT[i]
             lb=trlabels[i]
             #img = on.diff(img)
@@ -95,7 +103,7 @@ def test28x28():
                 #continue
             on.remember(img, lb)
 
-            if((i+1)%1000== -1):
+            if((i+1)%1000== 0):
                 print (i+1)
                 fn = "sav\on%d.sav" % (i+1)
                 print("Save file %s..." % (fn))
@@ -105,11 +113,11 @@ def test28x28():
                 #on.status()
                 #on.reform()
                 #on.status()
-                fn = "on%d.sav" % (i+1)
-                print("Save file %s..." % (fn))
-                sv = shelve.open(fn)
-                sv['on'] = on
-                sv.close()
+                #fn = "on%dformed.sav" % (i+1)
+                #print("Save file %s..." % (fn))
+                #sv = shelve.open(fn)
+                #sv['on'] = on
+                #sv.close()
 
 
     b = time.time()
@@ -118,11 +126,11 @@ def test28x28():
 
     #on.status()
     #fn = "sav/on%d.sav" % (TCNT)
-    #savenerve(fn)
-    #on.reform()#85 befor
-    #on.status()
+    #savenerve(fn,on)
+    on.reform()#85 befor
+    on.status()
     fn = "sav/son%dformed.sav" % (TCNT)
-    #savenerve(fn)
+    #savenerve(fn,on)
 
     #on.gencpp()
 
@@ -132,31 +140,30 @@ def test28x28():
     print("Predict...")
     c=time.time()
     for i in range(0,100):
-    #for i in [9009,9011,9012]:
-        #lb=on.predict(imagesT[i])
         label=labels[i]
         img = imagesT[i]
-        #img = on.diff(img)
-        #on.feel(img)
-        #img = on.outputlayer(on.layers[2])
-        if(i==-10):#5
-            xx=10*44
-            nlist = on.look(img)
-            ovalue = nlist[0].value
-            on.reform()
-            nlist = on.look(img)
-            print( ovalue,nlist[0].value)
-            #exit(1)
-
-
+        #lb=p.pallium(img)
         nlist = on.look(img)
-        lb=nlist[0].label
-        #print(lb)
+        lb = nlist[0].label
+        #nlist1 = on.look(on.rotate(img,15))
+        #nlist2 = on.look(on.rotate(img,-15))
+        #a=nlist[0].actor.value
+        #b = nlist1[0].actor.value
+        #c = nlist2[0].actor.value
+        #lbb = nlist1[0].label
+        #lbc = nlist1[0].label
+        #print(a,b,c,lba,lbb,lbc)
+        #if(a>=b and a>=c):
+        #    lb=lba
+        #if(b>=a and b>=c):
+        #    lb=lbb
+        #if(c>=b and c>=a):
+        #    lb=lbc
         if(lb==labels[i]):
             ok=ok+1
         else:
             fail+=1
-            print(i,":",label," predict ",lb,nlist[0].actor.value)
+            print(i,":",label," predict ",lb)#,nlist[0].actor.value)
             #nlist = on.look(img)
             #pltshow(img,lb)
     d = time.time()

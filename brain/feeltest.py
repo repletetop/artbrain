@@ -22,7 +22,10 @@ def testfeel():
             imagesT[i]=on.center(imagesT[i])
         np.save('testimgcenter.npy',imagesT)
 
-
+    pltshow(imagesT[0],'')
+    pltshow(on.rotate(imagesT[0],15),',')
+    pltshow(on.rotate(imagesT[0],-15),',')
+    exit(1)
     for j in range(3):
         for i in range(100):
             on.feel(imagesT[i])

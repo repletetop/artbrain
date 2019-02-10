@@ -1,8 +1,16 @@
 # -*-coding:utf-8-*-
+import tensorflow as tf
+import types
 import numpy as np
 import shelve
-
+import math
 from neuron import *
+
+import pycuda.driver as drv
+import pycuda.tools
+import pycuda.autoinit
+from pycuda.compiler import SourceModule
+
 import itertools
 
 import pandas as pd
@@ -10,9 +18,7 @@ from pandas import Series,DataFrame
 from goto import with_goto
 import sys
 
-from multiprocessing import Pool,Manager,Lock
-from multiprocessing.managers import BaseManager
-import multiprocessing
+from multiprocessing import Pool,Manager,Lock,dummy
 import time
 import matplotlib.pyplot as plt
 
@@ -34,7 +40,7 @@ import matplotlib.pyplot as plt
 # ROWS=28
 # NEURONSCOUNT = ROWS*COLS
 
-def savenerve(fn):
+def savenerve(fn,on):
     print("Save file %s..." % (fn))
     sv = shelve.open(fn)
     sv['on'] = on
@@ -75,6 +81,16 @@ class opticnerve:
         self.ROWS = ROWS
         self.NEURONSCOUNT = ROWS * COLS
         self.createfeellayers()
+        #add blank
+        nb=neuron()
+        nb.label='-'
+        self.knowledges['-']=nb
+        n=self.palliumadd()
+        nb.inaxon.append(n)
+        n.axon.outneurons.append(nb)
+        for i in range(ROWS):
+            for j in range(COLS):
+                n.dendritic.connectfrom(self.neurons[i, j].axon,0)
 
 
 
@@ -106,6 +122,7 @@ class opticnerve:
         for k in self.knowledges:
             self.knowledges[k].value = 0
             self.knowledges[k].dendritic.value=0
+            self.knowledges[k].nagetived = False
         for n in self.pallium:
             n.value=0
             n.dendritic.value=0
@@ -337,6 +354,35 @@ class opticnerve:
                     n.calcValue()
             pltshow(self.outputlayer(toply),str(l))
 
+
+    def rotate(self,img,angle):#180
+        # for n in self.infrneurons:#
+        #    n.dendritic.value=0
+        layer = np.array([[neuron() for ii in range(self.COLS)]
+                            for jj in range(self.ROWS)])  # brains
+        layer1 = np.array([[neuron() for ii in range(self.COLS)]
+                            for jj in range(self.ROWS)])  # brains
+
+        r, c = img.shape
+        for i in range(r):
+            for j in range(c):
+                # if img[i, j]!=0:
+                layer[i, j].value = img[i, j]
+
+        a=math.pi/(180/angle);
+        cosa = math.cos(a)
+        sina = math.sin(a)
+        t = np.array([cosa, -sina, sina, cosa])
+        t = t.reshape(2, 2)
+
+        for i in range(self.ROWS):
+            for j in range(self.COLS):
+                nij=np.dot(t,np.array([i,j])-14).astype(np.int)+14
+                #print(i, j, nij)
+                if(nij[0]<self.ROWS and nij[1]<self.ROWS):
+                    layer1[i,j].dendritic.connectfrom(layer[nij[0],nij[1]].axon,1)
+                    layer1[i,j].calcValue()
+        return self.outputlayer(layer1)
 
 
 
@@ -570,11 +616,33 @@ class opticnerve:
         self.reset()
         self.input(img)
 
+        #a=time.time()
+        #pool=dummy.Pool(1)
+        #pool.map(lambda x:x.calcValue(),self.pallium)
+#        mod=SourceModule('''
+#        __global__ void calc(pallum*){
+#        struct:
+#          value
+#          id
+#          synapses
+#        }
+#        ''')
+
+#        a=time.time()
+        #use c++ to process
         for i in self.palliumidx:
+        #for layer in self.idxlays:
+          #can async calc
+          #pool=dummy.Pool(1)
+          #palliums=[self.pallium[i] for i in layer]
+          #pool.map(lambda x:x.calcValue(),palliums)
+        #  for i in layer:
             n=self.pallium[i]
             n.calcValue()
+#        b=time.time()
+#        print(b-a)
 
-        lst = [v for k, v in self.knowledges.items()]
+        lst = [v for k, v in self.knowledges.items() if v.nagetived==False]
         list1 = sorted(lst,key = lambda n:n.value,reverse=True)
         #lst = sorted(list(self.knowledges.items()), key=lambda k: k[1].value, reverse=True)
 
@@ -1051,9 +1119,7 @@ class opticnerve:
         return alike
     def neuronsplit(self,actneuron,acts):# 神经元分裂
         deactived = [s for s in actneuron.dendritic.synapses if s.actived == False]
-        if (deactived != [] and len(actneuron.dendritic.synapses)-len(deactived)>=2 ):
-            #print(len(deactived),len(actneuron.dendritic.synapses)-len(deactived))
-            #test distance
+        if (deactived != [] ):#split
             newn = neuron()
             for s in actneuron.dendritic.synapses:
                 if s.actived == True:
@@ -1068,19 +1134,20 @@ class opticnerve:
             iidx = self.palliumidx.index(pidx)
             self.palliumidx.insert(iidx, len(self.pallium))
             self.pallium.append(newn)
-            newn.isRoot=True
+            #newn.isRoot=True
+            newn.parent=actneuron
             acts.append(newn)
-        else:
-            for s in actneuron.dendritic.synapses:
-                if s.actived :
-                    s.axon.connectedNeuron.isRoot = (not s.dendritic.connectedNeuron in acts)
-                    acts.append(s.axon.connectedNeuron)
+
 
 
     def treesplit(self,root,acts):## 神经元分裂
         self.neuronsplit(root,acts)
         for s in root.dendritic.synapses:
+            #if s.axon.connectedNeuron.actived:
+            #    s.axon.connectedNeuron.parent = root
+            #    acts.append(s.axon.connectedNeuron)
             self.treesplit(s.axon.connectedNeuron,acts)
+
     def parttree(self,root,active,deactive):
         pass
 
@@ -1089,62 +1156,60 @@ class opticnerve:
         nlist = self.look(img)  # found mutipy?
         #remember every thing diffrence
         acts = []
-        if (nlist!=[]):
-            lb=nlist[0].label
-            actneuron = nlist[0].actor
-            # 神经元分裂
-            if actneuron.actived:
-                actneuron.isRoot = True
-                acts.append(actneuron)
-            self.treesplit(actneuron, acts)
+        actneuron=None
+        lb=nlist[0].label
+        actneuron = nlist[0].actor
+        # 神经元分裂
+        #self.treesplit(actneuron, acts)
+        #if not actneuron.actived:
+        #    actneuron = acts[0]
 
-            if lb == label: #allow mistake ,train twice
-                if actneuron.actived:
-                    return actneuron
-                if actneuron.axon.synapses!=[]:
-                    print("Not top neuron,cannot modify")
+        if lb == label: #allow mistake ,train twice
+            #add nagative know
+            #for k,v in self.knowledges.items():
+            #    if k!=lb and k not in actneuron.axon.nagetives:
+            #        actneuron.axon.nagetives.append(v)
 
-                #if actneuron.actived:
-                #    actneuron.isRoot=True
-                #    acts.append(actneuron)
-                #self.treesplit(actneuron, acts)
-                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
-                #    s=actneuron.dendritic.synapses[i]
-                #    actneuron.dendritic.disconnect(s)
-                #for na in acts:
-                #    if na.isRoot:
-                #        actneuron.dendritic.connectfrom(na.axon, 1)
-                #return actneuron
+            #if actneuron.actived:
+            #    actneuron.isRoot=True
+            #    acts.append(actneuron)
+            #self.treesplit(actneuron, acts)
+            #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+            #    s=actneuron.dendritic.synapses[i]
+            #    actneuron.dendritic.disconnect(s)
+            #for na in acts:
+            #    if na.isRoot:
+            #        actneuron.dendritic.connectfrom(na.axon, 1)
+            #return actneuron
 
-                #use current acts ,remove leaf*******
-                #self.treesplit(actneuron, acts)
-                #newact=acts[0]
-                #newact.axon.outneuron=nlist[0]
-                #nlist[0].inaxon.remove(actneuron)
-                #remove actneuron
-                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
-                #    s=actneuron.dendritic.synapses[i]
-                #    actneuron.dendritic.disconnect(s)
-                #idx=self.pallium.index(actneuron)
-                #pidx=self.palliumidx.index(idx)
-                #self.pallium.remove(actneuron)
-                #self.palliumidx.remove(idx)
-                #for i in range(len(self.palliumidx)):
-                #    if self.palliumidx[i]>idx:
-                #        self.palliumidx[i]=self.palliumidx[i]-1
+            #use current acts ,remove leaf*******
+            #self.treesplit(actneuron, acts)
+            #newact=acts[0]
+            #newact.axon.outneuron=nlist[0]
+            #nlist[0].inaxon.remove(actneuron)
+            #remove actneuron
+            #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+            #    s=actneuron.dendritic.synapses[i]
+            #    actneuron.dendritic.disconnect(s)
+            #idx=self.pallium.index(actneuron)
+            #pidx=self.palliumidx.index(idx)
+            #self.pallium.remove(actneuron)
+            #self.palliumidx.remove(idx)
+            #for i in range(len(self.palliumidx)):
+            #    if self.palliumidx[i]>idx:
+            #        self.palliumidx[i]=self.palliumidx[i]-1
 
-                #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
-                #    s  = actneuron.dendritic.synapses[i]
-                #    if s.actived == False:
-                #        actneuron.dendritic.disconnect(s)
-                return actneuron
+            #for i in range(len(actneuron.dendritic.synapses)-1,-1,-1):
+            #    s  = actneuron.dendritic.synapses[i]
+            #    if s.actived == False:
+            #        actneuron.dendritic.disconnect(s)
+            return actneuron
 
         if (self.knowledges.__contains__(label)):
             # print("Already in,create dendritic only", label)
             nlb = self.knowledges[label]
-            n=neuron()
-            self.palliumidx.append(len(self.pallium))
-            self.pallium.append(n)
+            n=self.palliumadd()
+
             nlb.inaxon.append(n)
             n.axon.outneurons.append(nlb)
             d=n.dendritic
@@ -1159,16 +1224,14 @@ class opticnerve:
             n.axon.outneurons.append(nlb)
             d=n.dendritic
 
-
-        for na in acts:
-            if na.isRoot:
-                d.connectfrom(na.axon,1)
+        #if(actneuron!=None):
+        #    d.connectfrom(actneuron.axon,1)
 
         r, c = img.shape
         for i in range(r):
             for j in range(c):
-                if self.neurons[i,j] in acts:
-                    continue
+                #if self.neurons[i,j] in acts:
+                #    continue
 
                 if (img[i][j] > 0 ):#positive
                     d.connectfrom(self.neurons[i, j].axon, 1)
@@ -1678,7 +1741,7 @@ class opticnerve:
     @with_goto
     def reform(self):#add Hippocampus
         #2 img pix count first
-        maxlen=5
+        maxlen=2
 
 
         label .lbtryform
@@ -1751,6 +1814,12 @@ class opticnerve:
                     del n
                 else:
                     print("??one synapse but polarity=",ns.polarity)
+    def palliumadd(self):
+        n = neuron()
+        self.palliumidx.append(len(self.pallium))
+        self.pallium.append(n)
+        return n
+
     def pallumdel(self,actneuron):
         try:
             idx = self.pallium.index(actneuron)
@@ -1791,7 +1860,9 @@ class opticnerve:
         vidx=[]
         lenpallium=len(self.pallium)
         flag=np.zeros(lenpallium)#flag idxed
+        self.idxlays=[]
         while len(vidx)<lenpallium:
+            layer=[]
             for i in range(lenpallium):
                 if(flag[i]==1):
                     continue
@@ -1806,7 +1877,9 @@ class opticnerve:
                 if hasin == False:
                     vidx.append(i)
                     flag[i]=1
+                    layer.append(i)
                     #self.pallium.remove(n)
+            self.idxlays.append(layer)
         self.palliumidx=vidx
         #print(vidx)
     def sortpallium_20190208(self):
@@ -2005,7 +2078,130 @@ class opticnerve:
 
         print("synapses:",s,"pallium:",len(self.pallium),"infnu:",cinf)
         pass
+    def cudalook(self,img):
+        modsrc='''
+        __global__ void look(uint8* img,int* know)
+        {
+            
+        
+        }
+        '''
+        mod = SourceModule(modsrc)
+        funlook = mod.get_function("look")
+        ret = 0
+        funlook(drv.In(img),drv.InOut(ret),grid=(32,1))
+        #for layer in self.idxlays:
+        #    drvimg=drv.in(img)
+        #    funlook(drvimg,drv.InOut(ret),grid=(1,len(layer)))
+        return ret
 
+
+    def genpy(self):
+        ROWS = 28
+        COLS = 28
+        for i in range(ROWS):
+            for j in range(COLS):
+                self.neurons[i, j].pos = (i, j)
+                self.neurons[i, j].id = -1
+        for i in range(len(self.pallium)):
+            self.pallium[i].id = i
+        tmp = ""
+        fd = open('./pallium_gen.py', 'w')  # 28*28=784
+        strmodule = '''
+import numpy as np
+def pallium(g):
+  nm=[0 for i in range(10)]
+'''
+        print(strmodule, file=fd)
+        tmp="  o=np.zeros(%d)"%(len(self.pallium))
+        print(tmp,file=fd)
+        for i in self.palliumidx[0:]:
+            n = self.pallium[i]
+            # add neuron
+            nlen = len(n.dendritic.synapses)
+            tmp = "  o[%d] = "%(i)
+            for idx in range(nlen):
+                s = n.dendritic.synapses[ idx]
+                npre = s.axon.connectedNeuron
+                if (s.polarity != 0):
+                    # v = v + s.axon.connectedNeuron.value * s.polarity
+                    if npre.id == -1:
+                        tmp = tmp + "g[%d,%d]+" % (npre.pos[0], \
+                                                      npre.pos[1])
+                    else:
+                        tmp = tmp + "o[%d]+" % (npre.id)
+                else:
+                    # v = v + int(not s.axon.connectedNeuron.value)
+                    if npre.id == -1:
+                        tmp = tmp + "int(not(g[%d,%d]))+" % (npre.pos[0], \
+                                                              npre.pos[1])
+                    else:
+                        tmp = tmp + "int(not(o[%d]))+" % (npre.id)
+
+            if (tmp[-1] == "+"):
+                tmp = tmp[0:len(tmp) - 1]
+            # print(tmp)
+            print(tmp, file=fd)
+            if (n.axon.outneurons != []):
+                label = n.axon.outneurons[0].label
+                tmp = "  if(o[%d]>nm[%s]):nm[%s]=o[%d]" % (i, label, label, i)
+                print(tmp, file=fd)
+        tmp = "  return np.argmax(nm)"
+        print(tmp, file=fd)
+        fd.close()
+        return __import__('pallium_gen')
+        #src='''def look(img):
+        #return 1
+        #'''
+        #code = compile(src, '', 'exec')
+        #fc = [c for c in code.co_consts if isinstance(c, types.CodeType)][0]
+        #self.pylook=types.FunctionType(fc,{})
+
+
+    def gentf(self,img):
+        ROWS = 28
+        COLS = 28
+        for i in range(ROWS):
+            for j in range(COLS):
+                self.neurons[i, j].pos = (i, j)
+                self.neurons[i, j].id = -1
+        input=tf.placeholder(tf.int32,shape=(28,28))
+        vp=[tf.Variable(0) for i in range (len(self.pallium))]
+        vlabel=[tf.Variable(0) for i in range(len(self.knowledges))]
+        for i in range(len(self.pallium)):
+            self.pallium[i].id = i
+
+        for i in self.palliumidx[0:]:
+            n = self.pallium[i]
+            for s in n.dendritic.synapses:
+                npre = s.axon.connectedNeuron
+                if npre.id == -1:
+                    #print(npre.pos)
+                    tmp= input[npre.pos[0],npre.pos[1]]
+                    tmp1= vp[i] +tmp
+                    vp[i]=tmp1
+                else:
+                    vp[i] = vp[i] + vp[npre.id]
+            if (n.axon.outneurons != []):
+                label = n.axon.outneurons[0].label
+                #print(label,i)
+                vlabel[label]=tf.cond( (vp[i]>vlabel[label]),lambda:vp[i],lambda:vlabel[label])
+
+        self.vi = vp
+        self.vinput=input
+        print("finished tf.")
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            vi = sess.run(self.vi, feed_dict={input: img})
+            print(vi)
+            return vi
+
+    def runtf(self,img):
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            vi=sess.run(self.vi,feed_dict={input:img})
+            print(vi)
+            return vi
     '''
     stat = 0
     always@(stat)begin
@@ -2070,6 +2266,11 @@ class opticnerve:
         nset = []
 
         print(strmodule, file=fd)
+        tmp="integer o[%d:0];"%(len(self.pallium))
+        tmp='''
+        always @(posedge clk)
+        for(i=0;i<%d;i++)o[i]=0;
+        '''%(len(self.pallium))
         for i in self.palliumidx[0:]:
             n = self.pallium[i]
             nlen = len(n.dendritic.synapses)
@@ -2118,7 +2319,7 @@ class opticnerve:
         fd.close()
         fneuron.close()
     def gencppneuron(self,nlen):
-        modneu = "int n%d(" % (nlen)
+        modneu = "int nu%d(" % (nlen)
         for x in range(nlen - 1):
             modneu += "int i%d," % (x)
         modneu += "int iend){\n "
@@ -2168,9 +2369,9 @@ int nm0=0,nm1=0,nm2=0,nm3=0,nm4=0,nm5=0,nm6=0,nm7=0,nm8=0,nm9=0;
             for t in range(mtimes):
                 if t==0:
                     print("Have %d arguments more then Maxargs %d " % (nlen, MAXARGS))
-                    tmp = "int o%d = n%d(" % (i, MAXARGS)
+                    tmp = "int o%d = nu%d(" % (i, MAXARGS)
                 else:
-                    tmp += "o%d += n%d(" % (i, MAXARGS)
+                    tmp += "o%d += nu%d(" % (i, MAXARGS)
 
                 for idx in range(MAXARGS):
                     s = n.dendritic.synapses[MAXARGS*t+idx]
@@ -2194,9 +2395,9 @@ int nm0=0,nm1=0,nm2=0,nm3=0,nm4=0,nm5=0,nm6=0,nm7=0,nm8=0,nm9=0;
                 tmp = tmp + ");\n"
                 print(tmp)
             if mtimes>0:
-                tmp += "o%d += n%d(" % (i,nlen%MAXARGS)
+                tmp += "o%d += nu%d(" % (i,nlen%MAXARGS)
             else:
-                tmp = "int o%d = n%d(" % (i, nlen)
+                tmp = "int o%d = nu%d(" % (i, nlen)
             for idx in range(nlen%MAXARGS):
                 s = n.dendritic.synapses[MAXARGS*mtimes+idx]
                 npre = s.axon.connectedNeuron

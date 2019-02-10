@@ -46,6 +46,7 @@ class axon:
     def __init__(self, neuron):
         self.connectedNeuron = neuron
         self.outneurons=[]
+        self.nagetives=[]
         self.synapses = []
 
 
@@ -71,6 +72,7 @@ class neuron:
         self.inaxon = []  # axon->neuron
         self.axon = axon(self)  # output axon
         self.actived = False
+        self.nagetived = False
 
         return
     def calcDendritic(self):
@@ -124,6 +126,10 @@ class neuron:
             if n.value < v:
                 n.value=v
                 n.actor = self
+        #if self.actived:
+        #    for n in self.axon.nagetives:
+        #        print("nagetived")
+        #        n.nagetived=True
 
 
     def conduct(self,actived):  # step 0

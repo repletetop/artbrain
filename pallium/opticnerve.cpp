@@ -25,15 +25,16 @@ KNOWLEDGES::iterator opticnerve::calculate()
 {
     vector<int> layer1;
     layer1.assign( (*palliumlayers.begin())->begin(),(*palliumlayers.begin())->end());
-    //#pragma omp parallel for
+    //#pragma omp parallel for //gen man more slower
     for(int i=0;i<layer1.size();i++){
-        int idx=layer1[i];
-        list<synapse*> ::iterator iter;
+    	int idx=layer1[i];
         neuron *nu = &(this->neurons[idx]);
-
-        for (iter =nu->fromsynapses.begin(); iter != nu->fromsynapses.end(); iter++) {
-            this->neuronsdata[idx] = this->neuronsdata[idx] + this->neuronsdata[(*iter)->neufrom];
+        //#pragma omp for reduction(+:this->neuronsdata[idx])
+	    for(int ii=0;ii<nu->fromsynapses.size();ii++){
+	    	//#pragma omp critical
+        	this->neuronsdata[idx] += this->neuronsdata[(nu->fromsynapses[ii])->neufrom];
         }
+
         //printf("%d ",i);
     }
 /*
@@ -41,7 +42,7 @@ KNOWLEDGES::iterator opticnerve::calculate()
 	for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++){
 		for(list<int>::iterator itp=(*it)->begin();itp!=(*it)->end();itp++){
 			int idx=*itp;
-			list<synapse*> ::iterator iter;
+			vector<synapse*> ::iterator iter;
 			neuron *nu = &(this->neurons[idx]);
 
 			for (iter =nu->fromsynapses.begin(); iter != nu->fromsynapses.end(); iter++) {
@@ -54,7 +55,7 @@ KNOWLEDGES::iterator opticnerve::calculate()
 //	for (int i = 0; i < this->palliumcnt; ++i) {
 //		int idx = this->palliumidx[i];
 //		//(this->pallium+idx)->calcValue();
-//		list<synapse*> ::iterator iter;
+//		vector<synapse*> ::iterator iter;
 //		neuron *nu = &(this->neurons[idx]);
 //
 //		for (iter =nu->fromsynapses.begin(); iter != nu->fromsynapses.end(); iter++) {
@@ -132,7 +133,7 @@ void opticnerve::remember(unsigned char * img, string label)
 			printf("same img has another label,lost it,write to log\n");
 			return;
 		}
-		//getactived(nuact,&actived);
+		getactived(nuact,&actived);
 	}
 
 	//remember;
@@ -175,7 +176,7 @@ void opticnerve::layerdown(list<list<int>*>::iterator currentlayer,int nuid){
     }else{
         (*currentlayer)->push_back(nuid);
         neurons[nuid].layer=currentlayer;
-        for(list<synapse*>::iterator it=neurons[nuid].tosynapses.begin();
+        for(vector<synapse*>::iterator it=neurons[nuid].tosynapses.begin();
             it!=neurons[nuid].tosynapses.end();it++){
         	(*currentlayer)->remove((*it)->neuto);
             layerdown(currentlayer,(*it)->neuto);
@@ -184,35 +185,53 @@ void opticnerve::layerdown(list<list<int>*>::iterator currentlayer,int nuid){
 }
 void opticnerve::setzero(int nuid){
 	neuronsdata[nuid]=0;
-    for(list<synapse*>::iterator it=neurons[nuid].fromsynapses.begin();
+    for(vector<synapse*>::iterator it=neurons[nuid].fromsynapses.begin();
 	it!=neurons[nuid].fromsynapses.end();it++){
     	setzero((*it)->neufrom);
     }
 }
 //actived only containe root
 void opticnerve::getactived(int nuid,vector<int>* actived) {
-    vector<int> acts;
-    for (list<synapse*>::iterator it=neurons[nuid].fromsynapses.begin();
+    vector<int> actalone,actreserve;
+    for (vector<synapse*>::iterator it=neurons[nuid].fromsynapses.begin();
 		it!=neurons[nuid].fromsynapses.end();it++){
     	//printf("%d,%d\n",(*it)->neufrom,(*it)->parentneuidx);
         if(neuronsdata[(*it)->neufrom]>=neuthreshold[(*it)->neufrom]){
-            acts.push_back((*it)->neufrom);
-            //neuronsdata[(*it)->neufrom]=0;//clear child
+            if(neurons[(*it)->neufrom].tosynapses.size()==1)
+                actalone.push_back((*it)->neufrom);
+            else
+                actreserve.push_back((*it)->neufrom);
+
 			setzero((*it)->neufrom);
 	   }else{
         	getactived((*it)->neufrom,actived);
         }
     }
-    if(acts.size()>1) {//create new one
+    if(actalone.size()>1){//create new one for not reserve,and disconnect old synapse
         int newact=neuronscnt++;
-        for(vector<int>::iterator it=acts.begin();it!=acts.end();it++) {
-            connect(*it,newact,1);
-            neuthreshold[newact]+=neuthreshold[*it];
+        for(int i=0;i<actalone.size();i++){
+            disconnect(neurons[actalone[i]].tosynapses[0]);
+            connect(actalone[i],newact,1);
+        }
+        (*neurons[nuid].layer)->push_back(newact);//current layer calc
+        connect(newact,nuid,1);
+        (*neurons[nuid].layer)->remove(nuid);//nuid move down
+        layerdown(neurons[nuid].layer,nuid);//nuid laydown
+        actreserve.push_back(newact);//
+    }else if(actalone.size()==1){//only one ,append to reserve
+        actreserve.push_back(actalone[0]);
+    }
+    if(actreserve.size()>1) {
+        //create new
+        int newact = neuronscnt++;
+        for (vector<int>::iterator it = actreserve.begin(); it != actreserve.end(); it++) {
+            connect(*it, newact, 1);
+            neuthreshold[newact] += neuthreshold[*it];
         }
         actived->push_back(newact);
         layerdown(neurons[nuid].layer,newact);
-    }else if(acts.size()==1){
-        actived->push_back(acts[0]);
+    }else if(actreserve.size()==1){
+        actived->push_back(actreserve[0]);
     }
 }
 
@@ -222,12 +241,24 @@ void opticnerve::connect(int neufrom,int neuto, int polarity = 1) {
     neurons[neuto].fromsynapses.push_back(s);
 }
 void opticnerve::disconnect(synapse *s) {
-    neurons[s->neufrom].tosynapses.remove(s);
-    neurons[s->neuto].fromsynapses.remove(s);
+	for(vector<synapse*>::iterator it=neurons[s->neufrom].tosynapses.begin();
+			it!=neurons[s->neufrom].tosynapses.end();it++)
+		if(*it==s){
+		neurons[s->neufrom].tosynapses.erase(it);
+		break;
+	}
+	for(vector<synapse*>::iterator it=neurons[s->neuto].fromsynapses.begin();
+			it!=neurons[s->neuto].fromsynapses.end();it++)
+		if(*it==s){
+		neurons[s->neuto].fromsynapses.erase(it);
+		break;
+	}
+    //neurons[s->neufrom].tosynapses.remove(s);
+    //neurons[s->neuto].fromsynapses.remove(s);
     delete s;
 }
 void opticnerve::disconnectfrom(int neuid,int neufrom, int polarity) {
-    list<synapse*> ::iterator iter;
+    vector<synapse*> ::iterator iter;
     for (iter = neurons[neuid].fromsynapses.begin(); iter != neurons[neuid].fromsynapses.end(); iter++)
     {
         if ((*iter)->neufrom == neufrom && (*iter)->polarity == polarity) {

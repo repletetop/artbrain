@@ -25,11 +25,15 @@ Not formed
 Use Time:15.916349
 OK:904, 0.904
 lays:1,neurons:2859
-
-Use Time train:100.981188, test19.633370
+==
+Use Time train:100.981188, test:19.633370
 OK:904, 0.904
 lays:66,neurons:11586
 
-Use Time train:86.823842, test17.015696
+Use Time train:86.823842, test:17.015696
 OK:904, 0.904
 lays:1,neurons:2859
+==
+Use Time train:0.127166, test:0.058289
+OK:98, 0.098
+lays:14,neurons:3396

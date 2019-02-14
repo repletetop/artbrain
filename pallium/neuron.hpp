@@ -27,8 +27,8 @@ public:
 	vector<int> outneurons;//point to knowledgs
 	vector<int> inneurons;//point to pallium index;
 	int actor = 0;
-	list<synapse*> tosynapses;//Dendritic synapses
-    list<synapse*> fromsynapses;//parent synapses
+	vector<synapse*> tosynapses;//Dendritic synapses
+    vector<synapse*> fromsynapses;//parent synapses
     list<list<int>*>::iterator layer;
 
 };

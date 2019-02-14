@@ -7,7 +7,7 @@
 #include <omp.h>
 #endif
 
-#define FEELEN (28*28*2)
+#define FEELEN (28*28*4)
 #define NEURONBUFFERLEN    (FEELEN+1000000)
 
 opticnerve::opticnerve()
@@ -26,7 +26,7 @@ opticnerve::opticnerve()
 
 }
 
-KNOWLEDGES::iterator opticnerve::calculate()
+void opticnerve::calculate(vector<KNOWLEDGES::iterator> &allmax)
 {
     //*/
     vector<int> layer1;
@@ -44,48 +44,14 @@ KNOWLEDGES::iterator opticnerve::calculate()
             }
         }
     }
-    /*
 
-	//calc pallium
-	for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++){
-		for(list<int>::iterator itp=(*it)->begin();itp!=(*it)->end();itp++){
-			int idx=*itp;
-			vector<synapse*> ::iterator iter;
-			neuron *nu = &(this->neurons[idx]);
-
-			for (iter =nu->fromsynapses.begin(); iter != nu->fromsynapses.end(); iter++) {
-				this->neuronsdata[idx] = this->neuronsdata[idx] + this->neuronsdata[(*iter)->neufrom];
-			}
-			//printf("%d:%d \n",idx,this->neuronsdata[idx]);
-		}
-	}
-*/
-//	for (int i = 0; i < this->palliumcnt; ++i) {
-//		int idx = this->palliumidx[i];
-//		//(this->pallium+idx)->calcValue();
-//		vector<synapse*> ::iterator iter;
-//		neuron *nu = &(this->neurons[idx]);
-//
-//		for (iter =nu->fromsynapses.begin(); iter != nu->fromsynapses.end(); iter++) {
-//			/*
-//			if ((*iter)->polarity != 0) {//polarity !=1
-//				(*iter)->value = this->neuronsdata[(*iter)->neufrom] * (*iter)->polarity;
-//			}
-//			else{
-//				(*iter)->value = int(!this->neuronsdata[(*iter)->neufrom]);
-//			}
-//			this->neuronsdata[idx] = this->neuronsdata[idx] + (*iter)->value;
-//			*/
-//			//connect =1
-//			this->neuronsdata[idx] = this->neuronsdata[idx] + this->neuronsdata[(*iter)->neufrom];
-//		}
-//	}
 
 	//calc knowledgs,get max neuron and get max knowledge
 	KNOWLEDGES::iterator itknow,kmaxit;
 	int kmax = 0;
 	itknow = this->knowledgs.begin();
 	kmaxit = itknow;
+	bool newmax=true;
 	while (itknow != this->knowledgs.end()) {
 		vector<int>::iterator itneu = this->neurons[ itknow->second].inneurons.begin();
 		int vmax = neuronsdata[*itneu];
@@ -101,25 +67,42 @@ KNOWLEDGES::iterator opticnerve::calculate()
 		if (kmax < vmax) {
 			kmax = vmax;
 			kmaxit = itknow;
+
+			newmax= true;
+			allmax.clear();
+			allmax.push_back(itknow);
+		}else if(kmax==vmax){
+		    newmax=false;
+		    allmax.push_back(itknow);
 		}
 		itknow++;
 	}
-	return kmaxit;
+	/*
+	if(allmax.size()>1){
+        for(int i=0;i<allmax.size();i++)
+            printf("%s ",allmax[i]->first.c_str());
+        printf(" mult predict.\n");
+	}
+	*/
+	//return kmaxit;
 }
 
 void opticnerve::input(unsigned char * img)
 {
+    //have same count img but pos not equ ,so must all pos img same
 	//clear pallium memset(this->neuronsdata, 0, this->neuronscnt*sizeof(int));
-	memset(this->neuronsdata, 0, 28*28*2*sizeof(int));
+	memset(this->neuronsdata, 0, FEELEN*sizeof(int));
 	//input feel
 	for (int i = 0; i < 28 * 28; i++) {
-		this->neuronsdata[i] = *(img + i)>0?1:0;
-		this->neuronsdata[i+28*28] = int(!*(img + i));
+	    int v=(*(img + i)+256-20)/256;
+	    //printf("%d,%d  ",*(img + i),v);
+		this->neuronsdata[i+28*28*v] =1;
 	}
+	//printf("\n");
 }
-KNOWLEDGES::iterator opticnerve::look(unsigned char*img) {
+void opticnerve::look(unsigned char*img,vector<KNOWLEDGES::iterator> &allmax) {
 	this->input(img);
-	return this->calculate();
+	this->calculate(allmax);
 
 }
 
@@ -129,7 +112,9 @@ void opticnerve::remember(unsigned char * img, string label)
 	vector<int> actived;
 	int act=0,deact=0;
 	if(this->knowledgs.size()>0){
-		KNOWLEDGES::iterator know=this->calculate();
+	    vector<KNOWLEDGES::iterator> allmax;
+		this->calculate(allmax);
+		KNOWLEDGES::iterator know=allmax[0];
 		string lb = know->first;
 		if (lb == label)
 			return;
@@ -156,7 +141,8 @@ void opticnerve::remember(unsigned char * img, string label)
 	}
 	int n = this->neuronscnt++;
 	neurons[nu].inneurons.push_back(n);
-	for (int i = 0; i < 28 * 28*2; i++) {
+
+	for (int i = 0; i < FEELEN; i++) {
 		if(this->neuronsdata[i]>0)
 			connect(i,n,1);
 	}
@@ -165,10 +151,22 @@ void opticnerve::remember(unsigned char * img, string label)
 		connect(actived[i],n,1);
 		//neuthreshold[n]+=neuthreshold[actived[i]];
 	}
-	neuthreshold[n]=28*28;
+	//neuthreshold[n]=28*28;
+    neuthreshold[n]=FEELEN;
 	list<list<int>*>::iterator layer = --(this->palliumlayers.end());
 	(*layer)->push_back(n);
 	neurons[n].layer=layer;
+	/*
+	vector<int> acts;
+	for (int i = 0; i < 28 * 28*2; i++) {
+		if(this->neuronsdata[i]>0)
+			acts.push_back(i);
+	}
+	acts+=actived;
+	for(int i=0;i<acts.size();i++){
+
+	}*/
+
 
 }
 //neucommon parents nuid move down for calc after neucommon
@@ -286,24 +284,36 @@ int opticnerve::countsynapse() {
         cnt+=neurons[i].fromsynapses.size();
     return cnt;
 }
+/*
 void opticnerve::merge(int a,int b){
-    neuron *nu = &(this->neurons[idx]);
-    this->neuronsdata[idx] =0;
+    neuron *nu = &(this->neurons[a]);
+    this->neuronsdata[b] =0;
     //#pragma omp for reduction(+:this->neuronsdata[idx])
     for (int ii = 0; ii < nu->fromsynapses.size(); ii++) {
         //#pragma omp critical
         this->neuronsdata[idx] += this->neuronsdata[(nu->fromsynapses[ii])->neufrom];
     }
 }
+*/
 void opticnerve::reform() {
+    //平衡二叉搜索树（Balanced Binary Tree）具有以下性质：
+    // 它是一棵空树或它的左右两个子树的高度差的绝对值不超过1，并且左右两个子树都是一棵平衡二叉树。
     vector<int> layer1;
     for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++) {
         layer1.assign((*it)->begin(), (*it)->end());
         //#pragma omp parallel for //gen man more slower
-        for (int i = 0; i < layer1.size()-1; i+=2) {
-            int idx1 = layer1[i];
-            int idx2 = layer1[i+1];
-            merge(idx1,idx2);
+        for (int i = 0; i < layer1.size()-1; i++)
+          for (int j = i+1; j < layer1.size(); i++) {
+            int a = layer1[i];
+            int b = layer1[j];
+            if(neurons[a].fromsynapses==neurons[b].fromsynapses){
+            //mergefrom(idx1,idx2);
+
+            }
+            if(neurons[a].tosynapses==neurons[b].tosynapses){
+                //mergeto
+            }
+
         }
     }
 }

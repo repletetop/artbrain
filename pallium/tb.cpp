@@ -41,7 +41,7 @@ int main(){
     clock_t start,ca,end;
     start = clock();
 
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < 3000; i++) {
 		img = (unsigned char*)((mnist+i)->data);
 		//showimg(img);
 		//printf("%d\n",i);
@@ -66,7 +66,15 @@ int main(){
 		ttl++;
 		img = (unsigned char*)((mnist + i)->data);
 		string lb = to_string((mnist + i)->label);
-		KNOWLEDGES::iterator k = on.look(img);
+		vector<KNOWLEDGES::iterator> allmax;
+		on.look(img,allmax);
+		if(allmax.size()>1) {
+			for (int i = 0; i < allmax.size(); i++)
+				printf("%s ", allmax[i]->first.c_str());
+			printf(" mult predict %s.\n",lb.c_str());
+		}
+
+		KNOWLEDGES::iterator k=allmax[0];
 		neuron *nu = on.neurons+k->second;
 		if (lb == k->first)
 			ok++;
@@ -77,7 +85,7 @@ int main(){
     dur = (double)(end - ca);
     printf("Use Time train:%f, test:%f\n",(double)(ca-start)/CLOCKS_PER_SEC,(dur/CLOCKS_PER_SEC));
 
-	printf("OK:%d, %0.3f\%\n", ok, ok*1.0 / ttl);
+	printf("OK:%d, %0.3f\%\n", ok, ok*100.0 / ttl);
 	printf("lays:%d, neurons:%d, synapes:%d\n",on.palliumlayers.size(),on.neuronscnt,on.countsynapse());
 	
 

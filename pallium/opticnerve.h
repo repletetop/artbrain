@@ -16,8 +16,8 @@ public:
 	opticnerve();
 	void input(unsigned char * img);
 	void remember(unsigned char*img,string label);
-	KNOWLEDGES::iterator calculate();
-	KNOWLEDGES::iterator look(unsigned char*img);
+	void calculate(vector<KNOWLEDGES::iterator> &allmax);
+	void look(unsigned char*img,vector<KNOWLEDGES::iterator> &allmax);
 	void getactived(int nuid,vector<int> *actived);
 	void setzero(int nuid);
 	void layerdown(list<list<int>*>::iterator currentlayer,int nuid);
@@ -32,6 +32,8 @@ public:
 
 	int countsynapse();
 
+
+	int inputlen=0;
 
 	neuron *neurons;
 	int *neuronsdata;

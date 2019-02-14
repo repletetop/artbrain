@@ -15,6 +15,16 @@ neuronscnt:1795.
 Use Time:2.339845
 OK:862, 0.862
 
+youhuahou
+Use Time train:0.961845, test:1.400683
+OK:862, 0.862
+lays:1,neurons:1795
+==
+Use Time train:0.127166, test:0.058289
+OK:98, 0.098
+lays:14,neurons:3396
+
+
 Train:10000,test:1000
 Reformed
 Use Time:19.934334
@@ -33,7 +43,23 @@ lays:66,neurons:11586
 Use Time train:86.823842, test:17.015696
 OK:904, 0.904
 lays:1,neurons:2859
-==
-Use Time train:0.127166, test:0.058289
-OK:98, 0.098
-lays:14,neurons:3396
+
+you hua hou:
+not formed:
+Use Time train:45.196759, test:8.487166
+OK:904, 0.904
+lays:1,neurons:2859
+
+Use Time train:82.718021, test:15.100731
+OK:912, 0.912%
+lays:99,neurons:18455
+
+train:1000 test:1000
+Use Time train:0.898437, test:1.335275
+OK:862, 0.862%
+lays:1, neurons:1795, synapes:170128
+
+Use Time train:1.787483, test:3.592715
+OK:862, 0.862%
+lays:54, neurons:4623, synapes:72233
+

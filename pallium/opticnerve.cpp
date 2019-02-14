@@ -7,15 +7,20 @@
 #include <omp.h>
 #endif
 
+#define FEELEN (28*28*2)
+#define NEURONBUFFERLEN    (FEELEN+1000000)
+
 opticnerve::opticnerve()
 {
-	this->neurons = new neuron[28*28*2+100000];
-	this->neuronsdata = new int[28 * 28*2 + 100000];
+	this->neurons = new neuron[NEURONBUFFERLEN];
+	this->neuronsdata = new int[NEURONBUFFERLEN];
 
-	this->neuthreshold = new int[28 * 28*2 + 100000];
-	for(int i=0;i<28*28*2;i++)neuthreshold[i]=1;
+	for(int i=0;i<NEURONBUFFERLEN;i++)neurons[i].pVal=neuronsdata+i;
 
-	this->neuronscnt = 28*28*2;
+	this->neuthreshold = new int[NEURONBUFFERLEN];
+	for(int i=0;i<FEELEN;i++)neuthreshold[i]=1;
+
+	this->neuronscnt = FEELEN;
 	list<int> *layer0=new list<int>();
 	this->palliumlayers.push_back(layer0);
 
@@ -23,21 +28,24 @@ opticnerve::opticnerve()
 
 KNOWLEDGES::iterator opticnerve::calculate()
 {
+    //*/
     vector<int> layer1;
-    layer1.assign( (*palliumlayers.begin())->begin(),(*palliumlayers.begin())->end());
-    //#pragma omp parallel for //gen man more slower
-    for(int i=0;i<layer1.size();i++){
-    	int idx=layer1[i];
-        neuron *nu = &(this->neurons[idx]);
-        //#pragma omp for reduction(+:this->neuronsdata[idx])
-	    for(int ii=0;ii<nu->fromsynapses.size();ii++){
-	    	//#pragma omp critical
-        	this->neuronsdata[idx] += this->neuronsdata[(nu->fromsynapses[ii])->neufrom];
+    for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++) {
+        layer1.assign((*it)->begin(), (*it)->end());
+        //#pragma omp parallel for //gen man more slower
+        for (int i = 0; i < layer1.size(); i++) {
+            int idx = layer1[i];
+            neuron *nu = &(this->neurons[idx]);
+            this->neuronsdata[idx] =0;
+            //#pragma omp for reduction(+:this->neuronsdata[idx])
+            for (int ii = 0; ii < nu->fromsynapses.size(); ii++) {
+                //#pragma omp critical
+                this->neuronsdata[idx] += this->neuronsdata[(nu->fromsynapses[ii])->neufrom];
+            }
         }
-
-        //printf("%d ",i);
     }
-/*
+    /*
+
 	//calc pallium
 	for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++){
 		for(list<int>::iterator itp=(*it)->begin();itp!=(*it)->end();itp++){
@@ -101,8 +109,8 @@ KNOWLEDGES::iterator opticnerve::calculate()
 
 void opticnerve::input(unsigned char * img)
 {
-	//clear pallium
-	memset(this->neuronsdata, 0, this->neuronscnt*sizeof(int));
+	//clear pallium memset(this->neuronsdata, 0, this->neuronscnt*sizeof(int));
+	memset(this->neuronsdata, 0, 28*28*2*sizeof(int));
 	//input feel
 	for (int i = 0; i < 28 * 28; i++) {
 		this->neuronsdata[i] = *(img + i)>0?1:0;
@@ -127,13 +135,13 @@ void opticnerve::remember(unsigned char * img, string label)
 			return;
 		//split tree imed or reform on sleep ,select reform when free or new pallium>100
 
-		//神经元bu neng分裂,first proces one layer
 		int nuact =neurons[know->second].actor;
 		if(neuthreshold[nuact]==neuronsdata[nuact]){
 			printf("same img has another label,lost it,write to log\n");
 			return;
 		}
-		getactived(nuact,&actived);
+		//神经元bu neng分裂,first proces one layer
+		//getactived(nuact,&actived);
 	}
 
 	//remember;
@@ -203,7 +211,7 @@ void opticnerve::getactived(int nuid,vector<int>* actived) {
                 actreserve.push_back((*it)->neufrom);
 
 			setzero((*it)->neufrom);
-	   }else{
+	   }else if (neuronsdata[(*it)->neufrom]>0){
         	getactived((*it)->neufrom,actived);
         }
     }
@@ -212,8 +220,10 @@ void opticnerve::getactived(int nuid,vector<int>* actived) {
         for(int i=0;i<actalone.size();i++){
             disconnect(neurons[actalone[i]].tosynapses[0]);
             connect(actalone[i],newact,1);
+            neuthreshold[newact]+=neuthreshold[actalone[i]];
         }
         (*neurons[nuid].layer)->push_back(newact);//current layer calc
+        neurons[newact].layer=neurons[nuid].layer;
         connect(newact,nuid,1);
         (*neurons[nuid].layer)->remove(nuid);//nuid move down
         layerdown(neurons[nuid].layer,nuid);//nuid laydown
@@ -266,6 +276,34 @@ void opticnerve::disconnectfrom(int neuid,int neufrom, int polarity) {
         }
         else {
             printf("Not found fromsynapses");
+        }
+    }
+}
+
+int opticnerve::countsynapse() {
+    int cnt=0;
+    for(int i=0;i<neuronscnt;i++)
+        cnt+=neurons[i].fromsynapses.size();
+    return cnt;
+}
+void opticnerve::merge(int a,int b){
+    neuron *nu = &(this->neurons[idx]);
+    this->neuronsdata[idx] =0;
+    //#pragma omp for reduction(+:this->neuronsdata[idx])
+    for (int ii = 0; ii < nu->fromsynapses.size(); ii++) {
+        //#pragma omp critical
+        this->neuronsdata[idx] += this->neuronsdata[(nu->fromsynapses[ii])->neufrom];
+    }
+}
+void opticnerve::reform() {
+    vector<int> layer1;
+    for (list<list<int>*>::iterator it=this->palliumlayers.begin();it!=palliumlayers.end();it++) {
+        layer1.assign((*it)->begin(), (*it)->end());
+        //#pragma omp parallel for //gen man more slower
+        for (int i = 0; i < layer1.size()-1; i+=2) {
+            int idx1 = layer1[i];
+            int idx2 = layer1[i+1];
+            merge(idx1,idx2);
         }
     }
 }

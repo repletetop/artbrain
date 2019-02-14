@@ -53,7 +53,7 @@ int main(){
 		printf("__%s predict %s ,%d:%d\n",lb.c_str(), k->first.c_str(),nu->actor,on.neuronsdata[nu->actor]);
 */
 	}
-	//return 1;
+//	return 1;
 
 	//img = (unsigned char*)((mnist+1)->data);
 	//showimg(img);
@@ -71,14 +71,14 @@ int main(){
 		if (lb == k->first)
 			ok++;
 		//else
-		//	printf("%s predict %s ,%d\n",lb.c_str(), k->first.c_str(),on.neuronsdata[nu->actor]);
+		//  printf("%s predict %s ,%d\n",lb.c_str(), k->first.c_str(),on.neuronsdata[nu->actor]);
 	}
 	end = clock();
     dur = (double)(end - ca);
     printf("Use Time train:%f, test:%f\n",(double)(ca-start)/CLOCKS_PER_SEC,(dur/CLOCKS_PER_SEC));
 
-	printf("OK:%d, %0.3f\n", ok, ok*1.0 / ttl);
-	printf("lays:%d,neurons:%d\n",on.palliumlayers.size(),on.neuronscnt);
+	printf("OK:%d, %0.3f\%\n", ok, ok*1.0 / ttl);
+	printf("lays:%d, neurons:%d, synapes:%d\n",on.palliumlayers.size(),on.neuronscnt,on.countsynapse());
 	
 
 

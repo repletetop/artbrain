@@ -27,6 +27,11 @@ public:
 	void disconnect(synapse *s);
 	void disconnectfrom(int neuid,int neufrom, int polarity) ;
 
+	void reform();
+
+
+	int countsynapse();
+
 
 	neuron *neurons;
 	int *neuronsdata;

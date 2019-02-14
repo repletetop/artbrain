@@ -30,6 +30,7 @@ public:
 	vector<synapse*> tosynapses;//Dendritic synapses
     vector<synapse*> fromsynapses;//parent synapses
     list<list<int>*>::iterator layer;
+    int *pVal = NULL;
 
 };
 

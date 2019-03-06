@@ -1,4 +1,6 @@
-/*
+#ifndef _NEURON_HPP_
+#define _NEURON_HPP_
+ /*
 @author:893802998@qq.com
 neurons->axon->synape->dendritic->neurons->axon
 1     1 1  m        1     m    m    1   1
@@ -9,28 +11,41 @@ from dendritic
 */
 #include <list>
 #include <vector>
+#include <set>
+#include <iostream>
 using namespace std;
 
-struct synapse {
-	synapse(int vneufrom, int vneuto,int vpolarity = 1) {
-		this->neufrom = vneufrom;
-		this->polarity = vpolarity;
-		this->neuto=vneuto;
-	}
+typedef struct synapse {
 	int neufrom;
 	int neuto;
-	int polarity;
+} SYNAPSE;
+/*“仿函数"。指定排序准则*/
+class synapseSortCriterion {
+    public:
+        bool operator() (const SYNAPSE &a, const SYNAPSE &b) const {
+            if(a.neuto < b.neuto)
+                return true;
+            else if(a.neuto == b.neuto) {
+                if(a.neufrom < b.neufrom)
+                    return true;
+                else
+                    return false;
+            } else
+                return false;
+        }
 };
 
+typedef vector<int> PALLIUMLAY;
 struct neuron {
-public:
 	vector<int> outneurons;//point to knowledgs
 	vector<int> inneurons;//point to pallium index;
 	int actor = 0;
-	vector<synapse*> tosynapses;//Dendritic synapses
-    vector<synapse*> fromsynapses;//parent synapses
-    list<list<int>*>::iterator layer;
+	set<int> tosynapses;//Dendritic synapses after
+    vector<int> fromsynapses;//when connect add element ={0,0};//pre synapses
+	//vector<int> frompolarity;//all data is =1;
+    int layer;
     int *pVal = NULL;
 
 };
 
+#endif

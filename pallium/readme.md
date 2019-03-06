@@ -63,3 +63,15 @@ Use Time train:1.787483, test:3.592715
 OK:862, 0.862%
 lays:54, neurons:4623, synapes:72233
 
+=================celeb===============
+lays:68, neurons:115298, synapes:872617
+Use Time train(100):    31.348s, test(100):    13.670s
+OK:95,Fail:5, score: 95.000%
+lays:1, neurons:77806, synapes:3880400
+Use Time train(100):     3.037s, test(100):     4.177s
+OK:95,Fail:5, score: 95.000%
+
+
+knows:8100, lays:30, neurons:19897876, synapes:39624336
+end think.knows:8100, lays:30, neurons:19362117, synapes:38017059
+think8d91000.on2 ok!

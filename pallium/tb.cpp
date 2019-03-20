@@ -132,62 +132,62 @@ int main_celebA(){
     clock_t start,ca,end;
     start = clock();
 
-	on.load("celeb8d91000.on2");//6071331
+	on.load("celeb8d186000.on2");//6071331
 	//on.think();
 	//on.save("think8d91000.on2");
 
-	printf("knows:%d\n",on.knowledgs.size());
-	vector<string> knows;
-	for(int i=on.palliumlayers.size();i>0;i--){
-		printf("layer:%d\n",i);
-		for(int j= on.palliumlayers[i-1]->size();j>0;j--){
-			int n=(*on.palliumlayers[i-1])[j-1];
-			//knows.clear();
-			//on.statusto(n,knows);
-			//if(knows.size()>=10){
-				on.clearfeel();
-				on.reappear(n);
-				//unfeel(on,img);
-				unfeela(on,img);
-				imshow("",img);
-				//printf("\n%dsize(%d): ",n,knows.size());
-				for(int j=0;j<knows.size();j++){
-					printf("%s ",knows[j].data());
-				}
-				waitKey(100);
-			//}
-			//printf("%d:%d ",n,on.neurons[n].tosynapses.size())
-		}
-		waitKey(2000);
-	}
+//	printf("knows:%d\n",on.knowledgs.size());
+//	vector<string> knows;
+//	for(int i=on.palliumlayers.size();i>0;i--){
+//		printf("layer:%d\n",i);
+//		for(int j= on.palliumlayers[i-1]->size();j>0;j--){
+//			int n=(*on.palliumlayers[i-1])[j-1];
+//			//knows.clear();
+//			//on.statusto(n,knows);
+//			//if(knows.size()>=10){
+//				on.clearfeel();
+//				on.reappear(n);
+//				//unfeel(on,img);
+//				unfeela(on,img);
+//				imshow("",img);
+//				//printf("\n%dsize(%d): ",n,knows.size());
+//				for(int j=0;j<knows.size();j++){
+//					printf("%s ",knows[j].data());
+//				}
+//				waitKey(100);
+//			//}
+//			//printf("%d:%d ",n,on.neurons[n].tosynapses.size())
+//		}
+//		waitKey(2000);
+//	}
 
 //	on.reduce();
 	ca=clock();
 	int ok=0,fail=0;
-	int beginid=000;//data.imgs.size()=202599
-	for(int i=beginid;i<beginid+200;i++){
+	int beginid=200000;//data.imgs.size()=202599
+	for(int i=beginid;i<beginid+100;i++){
 		//printf("i=%d \n",i);
 	    data.loadmat(i,img);
 	    resize(img,img,Size(img.cols>>3,img.rows>>3),0,0,INTER_LINEAR);//div 8
 	    //imshow("",img);
 		//cv::waitKey(500);
 
-		vector<KNOWLEDGES::iterator> allmax;
+		vector<int> allmax;
 		feel(on, img);
 		on.calculate(allmax);
-		if (data.labels[i] == allmax[0]->first) {
+		if (data.labels[i] == on.knowidx[allmax[0]]) {
 			ok++;
 			printf("%d ok  : predict %s ok.\n",i,data.labels[i].data());
 			//imshow(data.labels[i],img);
 			//waitKey(500);
 		}
 		else{
-			printf("%d fail: %s predict %s\n",i, data.labels[i].c_str(),allmax[0]->first.c_str());
+			printf("%d fail: %s predict %s\n",i, data.labels[i].c_str(), on.knowidx[allmax[0]].c_str());
 			fail++;
 		}
 		if (allmax.size() > 1) {
 			for (int j = 0; j < allmax.size(); j++)
-				printf("%s ", allmax[j]->first.c_str());
+				printf("%s ",  on.knowidx[allmax[j]].c_str());
 			printf(" mult predict!\n");
 		}
 	}
@@ -203,7 +203,7 @@ int main_celebA(){
 }
 void reduce(opticnerve &on){
 
-	vector<string> knows;
+	vector<int> knows;
 	cv::Mat img(28,28,CV_8UC4);
 	img.data=(unsigned char*)(on.neuronsdata)+28*28*4;
 	for(int i=on.palliumlayers.size();i>0;i--){
@@ -225,10 +225,9 @@ void reduce(opticnerve &on){
 			on.statusto(n,knows);
 			//vector<string>::iterator loc=find(knows.begin(),knows.end(),"1");
 			//if(loc!=knows.end()){
-			if(knows.size()==1 && knows[0]=="1"){
+			if(knows.size()==1 ){
 			    //printf("lay:%d id:%d,know:%s\n",i,n,loc->data());
-                printf("lay:%d id:%d,know:%s\n",i,n,knows[0].data());
-			    on.clearfeel();
+                on.clearfeel();
 			    on.reappear(n);
 			    imshow("",img);
 			    waitKey(200);
@@ -263,84 +262,41 @@ int main_mnist(){
 	}
     printf("image count: %d, %d\n", cnt, sizeof(mnist->data));
 	opticnerve on(1000000);//94795
-	//on.load("mnist.nev");
+	on.load1("mnist50000.n1");
 	//reduce(on);
 
 	double dur;
     clock_t start,ca,end;
     start = clock();
 
-//goto lbload;
-
+    goto lbload;
 
 	for (i = 0; i < 10000; i++) {
 		img = (unsigned char*)((mnist+i)->data);
-		//showimg(img);
-		//printf("%d\n",i);
 		string lb = to_string((mnist+i)->label);
 		on.learn(img, lb);
-
-/*
-		vector<KNOWLEDGES::iterator> allmax;
-		on.look(img,allmax);
-		if(allmax.size()>1) {
-			for (int i = 0; i < allmax.size(); i++)
-				printf("%s ", allmax[i]->first.c_str());
-			printf(" mult predict %s.\n",lb.c_str());
-		}
-		printf("%s predict %s, %d \n",lb.c_str(), allmax[0]->first.c_str(),
-               on.neuronsdata[on.neurons[allmax[0]->second].actor]);
-
-*/
 	}
-    //return 1;
-	//img = (unsigned char*)((mnist+1)->data);
-	//showimg(img);
-	//KNOWLEDGES::iterator k =  on.look(img);
-	//printf("%s \n", k->first.c_str());
-	//printf("lays:%d, neurons:%d, synapes:%d\n",on.palliumlayers.size(),on.neuronscnt,on.countsynapse());
-	//on.reform();
-	//printf("after reform lays:%d, neurons:%d, synapes:%d\n",on.palliumlayers.size(),on.neuronscnt,on.countsynapse());
-
-//	return 1;
 	on.status();
-	//on.save("mnist.nev");
+	on.save1("mnist10000.n1");
 lbload:
 
+	on.setoutneurons();
     ca=clock();
 
     int ok = 0,ttl=0;
-	for (i = 10000; i < 10100; i++) {
+    char* endc;
+	for (i = 55000; i < 55500; i++) {
 		ttl++;
 		img = (unsigned char*)((mnist + i)->data);
-		string lb = to_string((mnist + i)->label);
-		vector<KNOWLEDGES::iterator> allmax;
-		on.input(img);
-		int nuidx=on.predict();
-		printf("get nuidx:%d ",nuidx);
-		map<int,string>::iterator it= on.knowidx.find(nuidx);
-		if(it!=on.knowidx.end()) {
-			printf(" %s predict %s\n",lb.data(),it->second.data());
-			if(lb==it->second)
-				ok++;
-		}
+		//string lb = to_string((mnist + i)->label);
+		vector<int> allmax;
+		on.look(img,allmax);
 
-		continue;
-		//on.look(img,allmax);
-		/*
-		if(allmax.size()>1) {
-			for (int i = 0; i < allmax.size(); i++)
-				printf("%s ", allmax[i]->first.c_str());
-			printf(" mult predict %s.\n",lb.c_str());
-		}
-		*/
-
-		KNOWLEDGES::iterator k=allmax[0];
-		neuron *nu = on.neurons+k->second;
-		if (lb == k->first)
+		int k=allmax[0];
+		auto know=on.knowidx.find(k);
+		int id = static_cast<int>(strtol(know->second.c_str(),&endc,10));
+		if ((mnist + i)->label==id)
 			ok++;
-		//else
-		//  printf("%s predict %s ,%d\n",lb.c_str(), k->first.c_str(),on.neuronsdata[nu->actor]);
 	}
 	end = clock();
     dur = (double)(end - ca);

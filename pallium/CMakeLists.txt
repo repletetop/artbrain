@@ -6,7 +6,7 @@ project (testbench)
 
 FIND_PACKAGE( OpenCV REQUIRED )
 if(OpenCV_FOUND)
-    message("OPENCV FOUND")
+    message("OPENCV FOUND==")
     MESSAGE(STATUS "OpenCV_LIBS: ${OpenCV_LIBS}")
 else()
     message("OPENCV NOT FOUND")

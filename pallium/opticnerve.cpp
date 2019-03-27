@@ -49,21 +49,26 @@ void opticnerve::calculate(vector<int> &allmax)
 				this->neuronsdata[idx] += this->neuronsdata[*itfrom];
 			}
 			//it's slower 23.163680 run this 18.729656 50000/500
-//			if(this->neurons[idx].outneurons.size()>=1){
-//				if (this->neuronsdata[idx] >= neuthreshold[idx]) {
+			if(this->neurons[idx].outneurons.size()==1){
+				if (this->neuronsdata[idx] >= neuthreshold[idx]) {
 //					if(maybe.size()==0){
 //						maybe.assign(neurons[idx].outneurons.begin(),neurons[idx].outneurons.end());
 //					}else{
+//						for(list<int>::iterator itmb=maybe.begin();itmb!=maybe.end();itmb++){
+//							neurons[idx].outneurons
+//						}
+//						vector<int> is=vector<int>(10);
 //						set_intersection(maybe.begin(),maybe.end(),
-//											   neurons[idx].outneurons.begin(),neurons[idx].outneurons.end(),maybe.begin());
+//											   neurons[idx].outneurons.begin(),neurons[idx].outneurons.end(),is.begin());
+//						maybe.assign(is.begin(),is.end());
 //					}
 //					if(maybe.size()==1){
-//						allmax.push_back(this->neurons[idx].outneurons[0]);
-//						return;
+						allmax.push_back(this->neurons[idx].outneurons[0]);
+						return;
 //					}
-//					//printf("Get it %d,know:%d\n",idx,this->neurons[idx].outneurons[0]);
-//				}
-//			}
+					//printf("Get it %d,know:%d\n",idx,this->neurons[idx].outneurons[0]);
+				}
+			}
 
         }
     }
@@ -1131,4 +1136,9 @@ int opticnerve::createtree(vector<int> &actived) {
 		printf("create tree error, no actived \n");
 		return -1;
 	}
+}
+
+void opticnerve::see(vector<int> &allmax) {
+
+	calculate(allmax);
 }

@@ -8,7 +8,8 @@
 #include <vector>
 #include "neuron.hpp"
 
-#define FEELEN (128*128*2)
+#define FEELWIDTH 128
+#define FEELEN (FEELWIDTH*FEELWIDTH*2)
 //#define NEURONBUFFERLEN    (FEELEN+1024*1024*1024)
 #define NEURONBUFFERLEN    (1024*1024*100)
 
@@ -28,6 +29,7 @@ public:
 	void learn(unsigned char*img,string label);
 	void remember(string label);
 	void calculate(vector<int> &allmax);
+	void see(vector<int> &allmax);
 
 	void look(unsigned char*img,vector<int> &allmax);
 	int predict();

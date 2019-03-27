@@ -13,17 +13,19 @@
 #include "neuron.hpp"
 #include "tb.h"
 #include "celeb.h"
+#include "hzk16.h"
 
 using namespace std;
 using namespace cv;
 
-void showimg(unsigned char *img) {
+void mnist2mat(unsigned char *img,cv::Mat& mat) {
 	for (int r = 0; r<28; r++)
 	{
-		for (int c = 0; c<28; c++)
-			printf("%d,",img[r*28+c]>0 ? 1 : 0);
-		printf("\n");
-	}	
+	    uchar *data = mat.ptr<uchar>(r);
+		for (int c = 0; c<28; c++){
+		    data[c]=img[r*28+c];
+		}
+	}
 }
 
 
@@ -33,7 +35,7 @@ void feel(opticnerve &on,cv::Mat image){
 	on.clearfeel();
     int nl = image.rows;
     int nc = image.cols * image.channels();
-
+    int begin=(FEELWIDTH-nl)/2;
     //遍历图像的每个像素
     for(int j=0; j<nl ;++j)
     {
@@ -47,7 +49,7 @@ void feel(opticnerve &on,cv::Mat image){
 			int v=data[i]/div;
             //printf("%d,%d ",data[i],v);
 			//int v=(data[i] +256-20)/256;
-			on.neuronsdata[i +nc * j+v*nl*nc] = 1;
+			on.neuronsdata[i+begin +FEELWIDTH * (j+begin)+v*FEELWIDTH*FEELWIDTH] = 1;
         }
     }
 }
@@ -56,13 +58,14 @@ void unfeel(opticnerve &on,cv::Mat &image){
     int nl = image.rows;
     int nc = image.cols * image.channels();
 
+    int begin=(FEELWIDTH-nl)/2;
     //遍历图像的每个像素
     for(int j=0; j<nl ;++j)
     {
         uchar *data = image.ptr<uchar>(j);
         for(int i=0; i<nc; ++i)
         {
-        	if(on.neuronsdata[i +nc * j+0*nl*nc])
+        	if(on.neuronsdata[i+begin +FEELWIDTH * (j+begin)+0*FEELWIDTH*FEELWIDTH])
             	data[i] = 64;
 			else
 				data[i] = 200;
@@ -252,7 +255,7 @@ int main_mnist(){
     unsigned int cnt;
     int ret;
     int i, j;
-	
+
     if (ret = mnist_load("../../Mnist_data/train-images.idx3-ubyte", "../../Mnist_data/train-labels.idx1-ubyte", &mnist, &cnt))
     {
         printf("An error occured: %d\n", ret);
@@ -262,16 +265,16 @@ int main_mnist(){
 	}
     printf("image count: %d, %d\n", cnt, sizeof(mnist->data));
 	opticnerve on(1000000);//94795
-	on.load1("mnist50000.n1");
+	//on.load1("mnist50000.n1");
 	//reduce(on);
 
 	double dur;
     clock_t start,ca,end;
     start = clock();
 
-    goto lbload;
+    //goto lbload;
 
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < 1000; i++) {
 		img = (unsigned char*)((mnist+i)->data);
 		string lb = to_string((mnist+i)->label);
 		on.learn(img, lb);
@@ -280,12 +283,12 @@ int main_mnist(){
 	on.save1("mnist10000.n1");
 lbload:
 
-	on.setoutneurons();
+	//on.setoutneurons();
     ca=clock();
 
     int ok = 0,ttl=0;
     char* endc;
-	for (i = 55000; i < 55500; i++) {
+	for (i = 50000; i < 50100; i++) {
 		ttl++;
 		img = (unsigned char*)((mnist + i)->data);
 		//string lb = to_string((mnist + i)->label);
@@ -311,7 +314,145 @@ lbload:
 	return 0;
 
 }
+
+Mat AffineTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
+{
+	Mat dst;
+	Mat Trans = getAffineTransform(scrPoints, dstPoints);
+	warpAffine(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
+	return dst;
+}
+
+Mat PerspectiveTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
+{
+	Mat dst;
+	Mat Trans = getPerspectiveTransform(scrPoints, dstPoints);
+	warpPerspective(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
+	return dst;
+}
+void get(int d,int &x1,int &y1){
+	switch (d){
+		case 0:x1=-2,y1=0;break;
+		case 1:x1=2,y1=0;break;
+		case 2:x1=0,y1=-2;break;
+		case 3:x1=0,y1=2;break;
+		case 4:x1=-2,y1=-2;break;
+		case 5:x1=2,y1=2;break;
+		case 6:x1=-2,y1=2;break;
+		case 7:x1=2,y1=-2;break;
+	}
+}
+int main_hzk(){
+
+    mnist_data *mnist;
+	unsigned int cnt;
+    int ret;
+    int i, j;
+    hzk16 hzk;
+    cv::Mat hz(16,16,CV_8U);
+    cv::Mat img(28,28,CV_8U);
+    //hzk.loadmat('2',hz);
+    //imshow("",hz);
+    //waitKey(0);
+	
+    if (ret = mnist_load("../../Mnist_data/train-images.idx3-ubyte", "../../Mnist_data/train-labels.idx1-ubyte", &mnist, &cnt))
+    {
+        printf("An error occured: %d\n", ret);
+		free(mnist);
+		getchar();
+		return 1;
+	}
+    printf("image count: %d, %d\n", cnt, sizeof(mnist->data));
+	opticnerve on(1000000);//94795
+
+	double dur;
+    clock_t start,ca,end;
+    start = clock();
+
+	for (i = 0; i < 10; i++) {
+		char c='0'+i;
+	    hzk.loadmat(c,hz);
+	    string lb=&c;
+	    //
+		//imshow("",hz);
+		//waitKey(0);
+		feel(on,hz);
+		on.remember(lb);
+
+		cv::Mat dst(16,16,CV_8U);
+		Point2f AffinePoints[4] = { Point2f(2, 2), Point2f(2, 13), Point2f(13, 2), Point2f(13, 13) };
+		Point2f AffinePoints1[4] = { Point2f(2, 2), Point2f(2, 13), Point2f(13, 2), Point2f(13, 13)  };
+		int x1,y1;
+		for(int d0=0;d0<4;d0++){get(d0,x1,y1);AffinePoints1[0].x=AffinePoints[0].x+x1;AffinePoints1[0].y=AffinePoints[0].y+y1;
+		for(int d1=0;d1<4;d1++){get(d1,x1,y1);AffinePoints1[1].x=AffinePoints[1].x+x1;AffinePoints1[1].y=AffinePoints[1].y+y1;
+		for(int d2=0;d2<4;d2++){get(d2,x1,y1);AffinePoints1[2].x=AffinePoints[2].x+x1;AffinePoints1[2].y=AffinePoints[2].y+y1;
+		for(int d3=0;d3<4;d3++){get(d3,x1,y1);AffinePoints1[3].x=AffinePoints[3].x+x1;AffinePoints1[3].y=AffinePoints[3].y+y1;
+			//Mat dst_affine = AffineTrans(hz, AffinePoints0, AffinePoints1);
+			Mat dst_perspective = PerspectiveTrans(hz, AffinePoints, AffinePoints1);
+
+			//imshow("dst", dst_perspective);
+			//waitKey(0);
+			feel(on,dst_perspective);
+			on.remember(lb);
+
+		}
+		}
+		}
+		}
+	}
+	on.status();
+	for (i = 0; i < 5000; i++) {
+		mnist2mat((unsigned char *) (mnist + i)->data, img);
+		resize(img, hz, hz.size());
+		feel(on,hz);
+		string lb = to_string((mnist + i)->label);
+		on.remember(lb);
+	}
+
+	on.save("hzk.n2");
+lbload:
+
+	//on.setoutneurons();
+    ca=clock();
+
+    int ok = 0,ttl=0;
+    char* endc;
+	for (i = 50000; i < 50500; i++) {
+		ttl++;
+		mnist2mat((unsigned  char*)(mnist + i)->data,img);
+		resize(img,hz,hz.size());
+		//string lb = to_string((mnist + i)->label);
+        //imshow("",hz);
+        //waitKey(0);
+
+		vector<int> allmax;
+
+		feel(on,hz);
+		//on.calculate(allmax);
+		on.see(allmax);
+
+		int k=allmax[0];
+		auto know=on.knowidx.find(k);
+		int id = static_cast<int>(strtol(know->second.c_str(),&endc,10));
+		if ((mnist + i)->label==id)
+			ok++;
+	}
+	end = clock();
+    dur = (double)(end - ca);
+    printf("Use Time train:%f, test:%f\n",(double)(ca-start)/CLOCKS_PER_SEC,(dur/CLOCKS_PER_SEC));
+	printf("OK:%d, %0.3f\%\n", ok, ok*100.0 / ttl);
+	on.status();
+	
+
+
+	free(mnist);
+	//getchar();
+	return 0;
+
+}
+
 int main() {
 	main_mnist();
 	//main_celebA();
+	//main_hzk();
 }

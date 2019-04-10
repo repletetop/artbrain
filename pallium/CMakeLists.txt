@@ -23,7 +23,7 @@ endif()
 
 
 # 指定生成目标
-add_executable(testbench tb.cpp opticnerve.cpp celeb.cpp)
+add_executable(testbench testbench.cpp opticnerve.cpp celeb.cpp)
 add_executable(tbceleb tbceleb.cpp opticnerve.cpp celeb.cpp)
 add_executable(tbceleb8d tbceleb8d.cpp opticnerve.cpp celeb.cpp)
 

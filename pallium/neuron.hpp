@@ -16,8 +16,13 @@ from dendritic
 using namespace std;
 
 typedef struct synapse {
+    synapse(int from,int to){
+        neufrom=from;
+        neuto=to;
+    }
 	int neufrom;
 	int neuto;
+	int threshold;
 } SYNAPSE;
 /*“仿函数"。指定排序准则*/
 class synapseSortCriterion {

@@ -26,6 +26,7 @@ opticnerve::opticnerve(int maxneucnt)
 	}
 
 	this->neuthreshold = new int[maxneucnt];
+	//memset(neuronsdata,FEELEN,sizeof(int));
 	for(int i=0;i<FEELEN;i++)neuthreshold[i]=1;
 
 	this->neuronscnt = FEELEN;
@@ -163,7 +164,7 @@ void opticnerve::remember(string label){
 			//return;
 		}
 		//神经元bu neng分裂,first proces one layer
-		getactived(nuact,&actived);
+		//getactived(nuact,&actived);
 		if(actived.size()>0) {
 			//rootact = createbtree(actived);
 			rootact = createtree(actived);
@@ -223,6 +224,47 @@ void opticnerve::remember(string label){
 
 
 	int rootnew = this->getneuron();
+	for(int l=0;l<FEELLAYS;l++){
+		//connected neurons
+		for(int r=0;r<FEELWIDTH;r++){
+			for(int c=0;c<FEELWIDTH;c++){
+				if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+r*FEELWIDTH+c]>0) {
+
+					//way second lixing
+					vector<pair<int,int>> pts,zone;
+					pts.push_back(pair<int,int>(r,c));
+					while(pts.size()>0){
+						pair<int,int> pt=pts.back();
+						pts.pop_back();
+						zone.push_back(pt);
+						this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second]=0;
+						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first,pt.second+1));
+						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second-1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second-1));
+						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second));
+						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second+1));
+					}
+					if(zone.size()>5){
+						//get center
+						int minr=9999,maxr=0,minc=9999,maxc=0;
+						for(int idx=0;idx<zone.size();idx++){
+							if(minr>zone[idx].first)minr=zone[idx].first;
+							if(maxr<zone[idx].first)maxr=zone[idx].first;
+							if(minc>zone[idx].second)minc=zone[idx].second;
+							if(maxc<zone[idx].second)maxc=zone[idx].second;
+							//way first zhijue
+							int i=l*FEELWIDTH*FEELWIDTH+r*FEELWIDTH+c;
+							connect(i, rootnew);
+							neuthreshold[rootnew]+=1;
+						}
+						printf("lay:%d, size %d,rect:%d,%d  %d,%d\n",l,zone.size(),minr,minc,maxr,maxc);
+					}else{
+						//printf("zone.size=%d not connect!\n",zone.size());
+					}
+				}
+
+			}
+		}
+	}
 
 	for (int i = 0; i < FEELEN; i++) {
 		if(this->neuronsdata[i]>0) {
@@ -1049,8 +1091,38 @@ int opticnerve::predict() {
 	return 0;
 }
 
-void opticnerve::conv2d() {
-	connect(0,1);
+void opticnerve::getfocus() {
+	//init focus connect
+	int data[FEELWIDTH][FEELWIDTH]={0};
+	int max,mcnt;
+	for(int i=0;i<FEELWIDTH;i++){
+		mcnt=0;max=0;
+		for(int r=i;r<FEELWIDTH-i;r++){
+			for (int c = i; c < FEELWIDTH-i; c++) {
+				for(int r1=-i;r1<i+1;r1++){
+					for(int c1=-i;c1<i+1;c1++){
+						if(r1==-i || r1==i-1 || c1==-i || c1==i-1)//add broad
+							data[r][c]+=neuronsdata[(r+r1)*FEELWIDTH+(c+c1)];
+					}
+				}
+				if(data[r][c]>max){
+					max=data[r][c];mcnt=1;
+				}else if(data[r][c]==max){
+					mcnt++;
+				}
+			}
+		}
+		printf("i:%d, max:%d, mcnt:%d\n",i,max,mcnt);
+		if(mcnt==1){
+			//get one max;
+            //imshow("",data);
+		}
+
+	}
+
+	//focus calculate
+	//return focus point
+
 
 }
 

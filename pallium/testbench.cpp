@@ -11,7 +11,7 @@
 #include "topone.h"
 #include "opticnerve.h"
 #include "neuron.hpp"
-#include "tb.h"
+#include "testbench.h"
 #include "celeb.h"
 #include "hzk16.h"
 
@@ -28,10 +28,89 @@ void mnist2mat(unsigned char *img,cv::Mat& mat) {
 	}
 }
 
+Mat AffineTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
+{
+	Mat dst;
+	Mat Trans = getAffineTransform(scrPoints, dstPoints);
+	warpAffine(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
+	return dst;
+}
+
+Mat PerspectiveTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
+{
+	Mat dst;
+	Mat Trans = getPerspectiveTransform(scrPoints, dstPoints);
+	warpPerspective(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
+	return dst;
+}
+void get(int d,int &x1,int &y1){
+	switch (d){
+		case 0:x1=-2,y1=0;break;
+		case 1:x1=2,y1=0;break;
+		case 2:x1=0,y1=-2;break;
+		case 3:x1=0,y1=2;break;
+		case 4:x1=-2,y1=-2;break;
+		case 5:x1=2,y1=2;break;
+		case 6:x1=-2,y1=2;break;
+		case 7:x1=2,y1=-2;break;
+	}
+	x1*=2;
+	y1*=2;
+}
 
 
 //test /home/tiansheng/aidata/CelebA
 void feel(opticnerve &on,cv::Mat image){
+	on.clearfeel();
+    int nl = image.rows;
+    int nc = image.cols * image.channels();
+    int br=(FEELWIDTH-image.rows)/2;
+    int bc=(FEELWIDTH-image.cols)/2;
+
+    //遍历图像的每个像素
+    for(int j=0; j<nl ;++j)
+    {
+        uchar *data = image.ptr<uchar>(j);
+        for(int i=0; i<nc; ++i)
+        {
+            //减少图像中颜色总数的关键算法：if div = 64,
+			// then the total number of colors is 4x4x4;整数除法时，是向下取整。
+		    //int div=64;
+            //data[i] = data[i]/div*div+div/2;
+			//int v=data[i]/div;
+			//on.neuronsdata[i +nc * j+v*nl*nc] = 1;
+
+        	int v=(data[i]>>6);
+        	//printf("%d %d %d,%d,%d\n",v,bc,br,i,j);
+			//for(int y=1;y<v-1;y++){
+				on.neuronsdata[i+bc +FEELWIDTH * (j+br)+v*FEELWIDTH*FEELWIDTH] = 1;
+			//}
+
+        }
+    }
+}
+
+
+void unfeel(opticnerve &on,cv::Mat &image){
+    int nl = image.rows;
+    int nc = image.cols * image.channels();
+
+    int begin=(FEELWIDTH-nl)/2;
+    //遍历图像的每个像素
+    for(int j=0; j<nl ;++j)
+    {
+        uchar *data = image.ptr<uchar>(j);
+        for(int i=0; i<nc; ++i)
+        {
+        	if(on.neuronsdata[i+begin +FEELWIDTH * (j+begin)+0*FEELWIDTH*FEELWIDTH])
+            	data[i] = 64;
+			else
+				data[i] = 200;
+        }
+    }
+}
+
+void feel_2(opticnerve &on,cv::Mat image){
 	on.clearfeel();
     int nl = image.rows;
     int nc = image.cols * image.channels();
@@ -54,7 +133,7 @@ void feel(opticnerve &on,cv::Mat image){
     }
 }
 
-void unfeel(opticnerve &on,cv::Mat &image){
+void unfeel2(opticnerve &on,cv::Mat &image){
     int nl = image.rows;
     int nc = image.cols * image.channels();
 
@@ -72,6 +151,7 @@ void unfeel(opticnerve &on,cv::Mat &image){
         }
     }
 }
+
 void unfeela(opticnerve &on,cv::Mat &image){
     int nl = image.rows;
     int nc = image.cols * image.channels();
@@ -120,6 +200,16 @@ void testreappear(opticnerve &on){
 		}
 		waitKey(1000);
 	}
+}
+void getfocus(){
+	opticnerve on(1000000);// s7000.on2: 6071331  12000.on2:10172301
+	celebdata data;
+	cv::Mat img,result;
+	data.loadmat(1,img);
+	resize(img,img,Size(img.cols>>3,img.rows>>3),0,0,INTER_LINEAR);//div 8
+	feel(on,img);
+	on.getfocus();
+
 }
 int main_celebA(){
 	celebdata data;
@@ -251,7 +341,7 @@ void reduce(opticnerve &on){
 int main_mnist(){
 
     mnist_data *mnist;
-	unsigned char* img;
+	cv::Mat img(28,28,CV_8U);
     unsigned int cnt;
     int ret;
     int i, j;
@@ -264,7 +354,7 @@ int main_mnist(){
 		return 1;
 	}
     printf("image count: %d, %d\n", cnt, sizeof(mnist->data));
-	opticnerve on(1000000);//94795
+	opticnerve on(2000000);//94795
 	//on.load1("mnist50000.n1");
 	//reduce(on);
 
@@ -275,12 +365,35 @@ int main_mnist(){
     //goto lbload;
 
 	for (i = 0; i < 1000; i++) {
-		img = (unsigned char*)((mnist+i)->data);
+		mnist2mat( (unsigned char*)((mnist+i)->data),img);
 		string lb = to_string((mnist+i)->label);
-		on.learn(img, lb);
+		feel(on,img);
+		on.remember(lb);
+
+//		int x1,y1;
+//		Point2f AffinePoints[4] = { Point2f(2, 2), Point2f(2, 25), Point2f(25, 2), Point2f(25, 25) };
+//		Point2f AffinePoints1[4] = { Point2f(2, 2), Point2f(2, 25), Point2f(25, 2), Point2f(25, 25)  };
+//		for(int d0=0;d0<2;d0++){get(d0,x1,y1);AffinePoints1[0].x=AffinePoints[0].x+x1;AffinePoints1[0].y=AffinePoints[0].y+y1;
+//		for(int d1=0;d1<2;d1++){get(d1,x1,y1);AffinePoints1[1].x=AffinePoints[1].x+x1;AffinePoints1[1].y=AffinePoints[1].y+y1;
+//		for(int d2=0;d2<2;d2++){get(d2,x1,y1);AffinePoints1[2].x=AffinePoints[2].x+x1;AffinePoints1[2].y=AffinePoints[2].y+y1;
+//		for(int d3=0;d3<2;d3++){get(d3,x1,y1);AffinePoints1[3].x=AffinePoints[3].x+x1;AffinePoints1[3].y=AffinePoints[3].y+y1;
+//			//Mat dst_affine = AffineTrans(hz, AffinePoints0, AffinePoints1);
+//			Mat dst_perspective = PerspectiveTrans(img, AffinePoints, AffinePoints1);
+//
+//			//imshow("dst", dst_perspective);
+//			//waitKey(0);
+//			feel(on,dst_perspective);
+//			on.remember(lb);
+//
+//		}
+//		}
+//		}
+//		}
+
 	}
 	on.status();
-	on.save1("mnist10000.n1");
+	//on.think();
+	//on.save1("mnist10000.n1");
 lbload:
 
 	//on.setoutneurons();
@@ -290,10 +403,10 @@ lbload:
     char* endc;
 	for (i = 50000; i < 50100; i++) {
 		ttl++;
-		img = (unsigned char*)((mnist + i)->data);
-		//string lb = to_string((mnist + i)->label);
+		mnist2mat( (unsigned char*)((mnist+i)->data),img);
 		vector<int> allmax;
-		on.look(img,allmax);
+		feel(on,img);
+		on.see(allmax);
 
 		int k=allmax[0];
 		auto know=on.knowidx.find(k);
@@ -315,33 +428,6 @@ lbload:
 
 }
 
-Mat AffineTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
-{
-	Mat dst;
-	Mat Trans = getAffineTransform(scrPoints, dstPoints);
-	warpAffine(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
-	return dst;
-}
-
-Mat PerspectiveTrans(Mat src, Point2f* scrPoints, Point2f* dstPoints)
-{
-	Mat dst;
-	Mat Trans = getPerspectiveTransform(scrPoints, dstPoints);
-	warpPerspective(src, dst, Trans, Size(src.cols, src.rows), CV_INTER_CUBIC);
-	return dst;
-}
-void get(int d,int &x1,int &y1){
-	switch (d){
-		case 0:x1=-2,y1=0;break;
-		case 1:x1=2,y1=0;break;
-		case 2:x1=0,y1=-2;break;
-		case 3:x1=0,y1=2;break;
-		case 4:x1=-2,y1=-2;break;
-		case 5:x1=2,y1=2;break;
-		case 6:x1=-2,y1=2;break;
-		case 7:x1=2,y1=-2;break;
-	}
-}
 int main_hzk(){
 
     mnist_data *mnist;
@@ -452,7 +538,8 @@ lbload:
 }
 
 int main() {
-	main_mnist();
+	//main_mnist();
 	//main_celebA();
 	//main_hzk();
+	getfocus();
 }

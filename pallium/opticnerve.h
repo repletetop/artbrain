@@ -9,7 +9,8 @@
 #include "neuron.hpp"
 
 #define FEELWIDTH 128
-#define FEELEN (FEELWIDTH*FEELWIDTH*2)
+#define FEELLAYS	4
+#define FEELEN (FEELWIDTH*FEELWIDTH*FEELLAYS)
 //#define NEURONBUFFERLEN    (FEELEN+1024*1024*1024)
 #define NEURONBUFFERLEN    (1024*1024*100)
 
@@ -35,6 +36,7 @@ public:
 	int predict();
 	void getactived(int nuid,vector<int> *actived);
 	int getneuron();
+	int getsynapse(int from,int to);
 	void setzero(int nuid);
 	void layerafter(int currentlayer,int nuid);
 	void save(const char* filename);
@@ -55,7 +57,7 @@ public:
 	void removealone();
 	void reappear(int neu);
 
-	void conv2d();
+	void getfocus();
 
 
 
@@ -78,6 +80,8 @@ public:
 	//int *neutimes;//
 	//int curtimes;//
 	set<SYNAPSE,synapseSortCriterion> synapses;
+	vector<SYNAPSE> synapsevalue;
+	vector<int> unusedsynapse;
 	vector<vector<int> *> palliumlayers;
 	//int *palliumidx;
 	//int palliumcnt = 0;

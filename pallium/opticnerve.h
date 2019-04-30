@@ -64,6 +64,7 @@ public:
 
 
 	void connect(int neufrom,int neuto );
+	void connectvalue(int neufrom,int neuto,int value );
 	void disconnect(int neuid,int neufrom);
 
 	void reform();
@@ -75,7 +76,7 @@ public:
 	int inputlen=0;
 
 	neuron *neurons;
-	int *neuronsdata;
+	unsigned char *neuronsdata;
 	int *neuthreshold;
 	//int *neutimes;//
 	//int curtimes;//

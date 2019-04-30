@@ -42,14 +42,18 @@ class synapseSortCriterion {
 
 typedef vector<int> PALLIUMLAY;
 struct neuron {
+    void fire(){
+
+    }
 	vector<int> outneurons;//point to knowledgs
 	vector<int> inneurons;//point to pallium index;
 	int actor = 0;
 	set<int> tosynapses;//Dendritic synapses after
     vector<int> fromsynapses;//when connect add element ={0,0};//pre synapses
+    vector<int> fromthreshold;
 	//vector<int> frompolarity;//all data is =1;
     int layer;
-    int *pVal = NULL;
+    unsigned char *pVal = NULL;
 
 };
 

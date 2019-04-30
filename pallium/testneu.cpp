@@ -18,8 +18,6 @@
 #include "celeb.h"
 #include "hzk16.h"
 #include "neu.h"
-#include "thread_pool.h"
-#include "Timer.h"
 
 using namespace std;
 using namespace cv;
@@ -565,198 +563,50 @@ void conduct(cv::Mat &img,unsigned int x,cv::Mat &nimg){
 }
 cv::Mat img(28,28,CV_8U);
 cv::Mat nimg=cv::Mat::zeros(28,28,CV_8U);
-
-brn::brain *pbr;
+brn::neu neus[28][28];
+brn::neu neus1[28][28];
 
 void neutr(int r,int c){
-//    uchar *data0 = img.ptr<uchar>(r-1);
-//    uchar *data1 = img.ptr<uchar>(r);
-//    uchar *data2 = img.ptr<uchar>(r+1);
-//    uchar *ndata = nimg.ptr<uchar>(r);
-//
-//    while(1){
-//        //printf("Wait...%d,%d, id:%d\n",r,c,std::this_thread::get_id());
-//        for(int x=16;x>0;x--){
-//            usleep(100*1000);
-//            unsigned int v=data0[c-1]+data1[c-1]+data2[c-1]+
-//               data0[c]+data1[c]+data2[c]+
-//               data0[c+1]+data1[c+1]+data2[c+1];
-//            if(v/9>=x*16 && v/9<x*16+16){//fire
-//                ndata[c]=x*16;
-//                pbr->neus[r*28+c].value+=1;
-//            }
-//        }
-//        sleep(1);
-//        ndata[c]=0;
-//    }
+    uchar *data0 = img.ptr<uchar>(r-1);
+    uchar *data1 = img.ptr<uchar>(r);
+    uchar *data2 = img.ptr<uchar>(r+1);
+    uchar *ndata = nimg.ptr<uchar>(r);
+    while(1){
+        printf("Wait...%d,%d, id:%d\n",r,c,std::this_thread::get_id());
+        for(int x=16;x>0;x--){
+            usleep(100*1000);
+            unsigned int v=data0[c-1]+data1[c-1]+data2[c-1]+
+               data0[c]+data1[c]+data2[c]+
+               data0[c+1]+data1[c+1]+data2[c+1];
+            if(v/9>=x*16 && v/9<x*16+16){//fire
+                ndata[c]=x*16;
+                neus[r][c].fire();
+            }
+        }
+        sleep(1);
+        ndata[c]=0;
+    }
 }
-
-
-
 void testthread(){
 	mnist_data *mnist;
     unsigned int cnt;
     int ret;
     int i, j;
-
-    pbr=new brn::brain();
+    //neus1[0][0].dd.synapses[0]->ax
 
     mnist_load("../../Mnist_data/train-images.idx3-ubyte", "../../Mnist_data/train-labels.idx1-ubyte", &mnist, &cnt);
 
     mnist2mat((unsigned char *) ((mnist + 0)->data), img);
     thread *t;
-    std::threadpool executor{ 27*20 };
     for(i=1;i<27;i++)
         for(j=1;j<27;j++){
-            //t=new thread(neutr,i,j);
-            executor.commit(neutr,i,j);
-            //br.neus[i*28+j].value=1;
-    }
-    while(1){
-        imshow("",nimg);
-        waitKey(100);
-        pbr->tm.DetectTimers();
+            t=new thread(neutr,i,j);
     }
     t->join();
 }
-int testneurons(){
-	mnist_data *mnist;
-	cv::Mat img(28,28,CV_8U);
-    unsigned int cnt;
-    int ret;
-    int i, j;
-    opticnerve on(2000000);//94795
-
-    mnist_load("../../Mnist_data/train-images.idx3-ubyte", "../../Mnist_data/train-labels.idx1-ubyte", &mnist, &cnt);
-
-	for (i = 0; i < 10; i++) {
-		mnist2mat((unsigned char *) ((mnist + i)->data), img);
-		string lb = to_string((mnist + i)->label);
-		imshow("org",img);
-		cv::Mat nimg=cv::Mat::zeros(28,28,CV_8U);
-		for(int x=16;x>0;x--){
-			conduct(img,x,nimg);
-			imshow("new",nimg);
-			feel(on,nimg);
-			on.remember(lb);
-			on.status();
-			waitKey(0);
-		}
-		waitKey(0);
-	}
-}
-void testimg(){
-	cv::Mat img1=imread("/home/tiansheng/Pictures/wd1.jpg");
-	cv::Mat img2=imread("/home/tiansheng/Pictures/w3.jpg");
-	while(1){
-		imshow("",img1);
-		waitKey(10);
-		imshow("",img2);
-		waitKey(100);
-	}
-}
-void avgface(){
-	celebdata data;
-	cv::Mat img;
-	data.loadmat(1,img);
-	cv::Mat result=cv::Mat::zeros(218,178, CV_8U) ;
-	unsigned int tmp[218][178]={0};
-	int cnt=0;
-	for(int i=0;i<2000;i++){
-		data.loadmat(i,img);
-		if(img.rows!=0){
-			cnt++;
-			for(int r=0;r<218;r++)
-				for(int c=0;c<178;c++){
-				tmp[r][c]+=img.ptr<uchar>(r)[c];
-			}
-		}
-	}
-	for(int r=0;r<218;r++)
-		for(int c=0;c<178;c++) {
-			result.ptr<uchar>(r)[c] = tmp[r][c] / cnt;
-		}
-	cv::imshow("",result);
-	cv::waitKey(0);
 
 
-}
-void testneu(){
-	brn::neu n;
-	brn::bpneu bpn;
-	bpn.Na=150;
-	bpn.connect(&n);
-	//connect(bpn,n);
-    while(1){
-        brn::brain::tm.DetectTimers();
-        usleep(10*1000);
-    }
-}
-
-void testbpn(){
-	brn::neu n;
-	brn::bpneu bpn;
-	bpn.Na=40;
-	bpn.connect(&n);
-	//connect(bpn,n);
-    while(1){
-        brn::brain::tm.DetectTimers();
-        usleep(100*1000);
-    }
-}
-
-void testbrain(){
-	mnist_data *mnist;
-    unsigned int cnt;
-    int ret;
-    int i, j;
-
-    pbr=new brn::brain();
-
-    mnist_load("../../Mnist_data/train-images.idx3-ubyte", "../../Mnist_data/train-labels.idx1-ubyte", &mnist, &cnt);
-
-    mnist2mat((unsigned char *) ((mnist + 1)->data), img);
-    for(i=0;i<28;i++)
-        for(j=0;j<28;j++){
-    	//if(i!=12 and j!=12)
-    	// 	continue;
-    	uchar *data = img.ptr<uchar>(i);
-    	int v=15+data[j]*(150-15)/255;
-    	//v=data[j];
-    	pbr->bpneus[i][j].Na=v;
-    	//printf("i=%2d,j=%2d,data=%d,Na:%3d\n",i,j,data[j],pbr->bpneus[i * 28 + j].Na);
-    }
-    for(int x=0;x<100;x){
-		cv::Mat nimg=cv::Mat::zeros(28,28,CV_8U);
-		cv::Mat nimg1=cv::Mat::zeros(28,28,CV_8U);
-		cv::Mat nimg2=cv::Mat::zeros(28,28,CV_8U);
-        pbr->tm.DetectTimers();
-		for(i=0;i<28;i++)
-			for(j=0;j<28;j++) {
-			    //nimg.ptr<uchar>(i)[j]  = (uchar)(pbr->neus[0][i][j].Na - 15) *255/ (150 - 15) ;
-				//nimg1.ptr<uchar>(i)[j] = (uchar)(pbr->neus[1][i][j].Na - 15) *255/ (150 - 15) ;
-			    nimg.ptr<uchar>(i)[j]  = (uchar)(pbr->neus[0][i][j].ax->Na );
-			    //printf("%d ",(uchar)(pbr->neus[0][i][j].Na ));
-				nimg1.ptr<uchar>(i)[j] = (uchar)(pbr->neus[1][i][j].ax->Na );
-				nimg2.ptr<uchar>(i)[j] = (uchar)(pbr->neus[2][i][j].ax->Na );
-			}
-        imshow("a",nimg);
-        imshow("b",nimg1);
-        imshow("c",nimg2);
-        waitKey(1000);
-    }
-
-}
 int main() {
-	//avgface();
-    //testthread();
-	//testimg();
-	//testneurons();
-	//main_mnist();
-	//main_celebA();
-	//main_hzk();
-	//getfocus();
-	testneu();
-	//testbpn();
-	//testbrain();
+    testthread();
+
 }

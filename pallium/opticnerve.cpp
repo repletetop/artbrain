@@ -10,13 +10,16 @@
 #include <assert.h>
 #include <map>
 #include <vector>
+#include <cxcore.h>
+#include <highgui.h>
+
 using namespace std;
 
 opticnerve::opticnerve(int maxneucnt)
 {
 	maxneucnt+=FEELEN;
 	this->neurons = new neuron[maxneucnt];
-	this->neuronsdata = new int[maxneucnt];
+	this->neuronsdata = new unsigned char[maxneucnt];
 	//neutimes=new int[maxneucnt];
 	//curtimes=0;
 
@@ -43,33 +46,16 @@ void opticnerve::calculate(vector<int> &allmax)
             int idx = (*(*it))[i];
 			neuron *nu = &(this->neurons[idx]);
 			//#pragma omp for reduction(+:this->neuronsdata[idx])
-			this->neuronsdata[idx] = 0;
-			for (vector<int>::iterator itfrom = nu->fromsynapses.begin();
-				 itfrom != nu->fromsynapses.end(); itfrom++) {
-				//#pragma omp critical
-				this->neuronsdata[idx] += this->neuronsdata[*itfrom];
+			int tmp = 0;
+			for(int j=0;j<nu->fromsynapses.size();j++){
+				//tmp += abs(this->neuronsdata[nu->fromsynapses[j]]-nu->fromthreshold[j]);
+				tmp++;
 			}
-			//it's slower 23.163680 run this 18.729656 50000/500
-			if(this->neurons[idx].outneurons.size()==1){
-				if (this->neuronsdata[idx] >= neuthreshold[idx]) {
-//					if(maybe.size()==0){
-//						maybe.assign(neurons[idx].outneurons.begin(),neurons[idx].outneurons.end());
-//					}else{
-//						for(list<int>::iterator itmb=maybe.begin();itmb!=maybe.end();itmb++){
-//							neurons[idx].outneurons
-//						}
-//						vector<int> is=vector<int>(10);
-//						set_intersection(maybe.begin(),maybe.end(),
-//											   neurons[idx].outneurons.begin(),neurons[idx].outneurons.end(),is.begin());
-//						maybe.assign(is.begin(),is.end());
-//					}
-//					if(maybe.size()==1){
-						allmax.push_back(this->neurons[idx].outneurons[0]);
-						return;
-//					}
-					//printf("Get it %d,know:%d\n",idx,this->neurons[idx].outneurons[0]);
-				}
-			}
+			//if(tmp==0)
+			//	this->neuronsdata[idx]=255;
+			//else{
+				this->neuronsdata[idx]=255-tmp/nu->fromsynapses.size();
+			//}
 
         }
     }
@@ -144,34 +130,195 @@ void opticnerve::look(unsigned char*img,vector<int> &allmax) {
 	this->calculate(allmax);
 }
 //befor remember must give it feel or input
+//void opticnerve::remember(string label){
+//	//curtimes++;
+//	vector<int> actived;
+//	int act=0,deact=0;
+//	int rootact;
+//	if(this->knowledgs.size()>0){
+//	    vector<int> allmax;
+//		this->calculate(allmax);
+//		int know=allmax[0];
+//
+//		string lb = (knowidx.find(know))->second;
+//		if (lb == label)
+//			return;
+//
+//		int nuact =neurons[know].actor;
+//		//if(neuthreshold[nuact]==neuronsdata[nuact]){
+//		//	printf("same img has another label [%s],lost it,write to log\n",label.data());
+//		//	//return;
+//		//}
+//		//神经元bu neng分裂,first proces one layer
+//		//getactived(nuact,&actived);
+//		if(actived.size()>0) {
+//			//rootact = createbtree(actived);
+//			rootact = createtree(actived);
+//			neurons[rootact].outneurons.push_back(know);
+//		}
+//
+//
+//	}
+//
+//
+///*
+//	vector<int> tmp ;
+//	for (int i = 0; i < FEELEN; i++) {
+//		if(this->neuronsdata[i]>0){
+//			tmp.push_back(i);}
+//	}
+//	int rootnew=0;
+//	if(tmp.size()>0)
+//	{
+//		rootnew=createbtree(tmp);
+//		neurons[rootnew].outneurons.push_back(nu);
+//	}
+//
+//	if(actived.size()>0){
+//		neurons[rootact].outneurons.push_back(nu);
+//
+//		int n = getneuron();
+//		connect(rootnew, n);
+//		connect(rootact, n);
+//		neuthreshold[n]+=(neuthreshold[rootact] + neuthreshold[rootnew]);
+//		int ilay = neurons[rootact].layer >= neurons[rootnew].layer ? neurons[rootact].layer : neurons[rootnew].layer;
+//		ilay++;
+//		if(palliumlayers.size() < ilay + 1){
+//			vector<int>* lay=new vector<int>();
+//			palliumlayers.push_back(lay);
+//		}
+//		palliumlayers[ilay]->push_back(n);
+//		neurons[n].layer=ilay;
+//		neurons[nu].inneurons.push_back(n);
+//		neurons[n].outneurons.push_back(nu);
+//	}else{
+//		neurons[nu].inneurons.push_back(rootnew);
+//	}
+//*/
+//////////////
+//
+//
+//	int rootnew = this->getneuron();
+//	for(int l=0;l<FEELLAYS;l++){
+//		//connected neurons
+//		for(int r=0;r<FEELWIDTH;r++){
+//			for(int c=0;c<FEELWIDTH;c++){
+//				if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+r*FEELWIDTH+c]>0) {
+//
+//					//way second lixing
+//					vector<pair<int,int>> pts,zone;
+//					pts.push_back(pair<int,int>(r,c));
+//					int area=getneuron();
+//					while(pts.size()>0){
+//						pair<int,int> pt=pts.back();
+//						pts.pop_back();
+//						if (this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second]!=0){
+//							//way first zhijue
+//							connectvalue(l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second, rootnew,this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second]);
+//                            zone.push_back(pt);
+//                            this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second]=0;
+//						}
+//						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first,pt.second+1));
+//						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second-1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second-1));
+//						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second));
+//						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second+1));
+//					}
+//					if(zone.size()>300){
+//						//get center
+//						int minr=9999,maxr=0,minc=9999,maxc=0;
+//						//int area=getneuron();
+//						for(int idx=0;idx<zone.size();idx++){
+//							if(minr>zone[idx].first)minr=zone[idx].first;
+//							if(maxr<zone[idx].first)maxr=zone[idx].first;
+//							if(minc>zone[idx].second)minc=zone[idx].second;
+//							if(maxc<zone[idx].second)maxc=zone[idx].second;
+//						}
+//						printf("lay:%d, size %d,rect:%d,%d  %d,%d\n",l,zone.size(),minr,minc,maxr,maxc);
+//						//connectvalue(area,rootnew,255);
+//						//rememberarea();//remember feature;
+//						cv::Mat areamat(maxr-minr+1,maxc-minc+1,CV_8U);
+//						for(int idx=0;idx<zone.size();idx++){
+//							areamat.at<uchar>(zone[idx].first-minr,zone[idx].second-minc)=255;
+//						}
+//						//cv::imshow("",areamat);
+//						//cv::waitKey(0);
+//						neuthreshold[rootnew]+=neuthreshold[area];
+//						//way second, remember area shape and position
+//					}else{
+//						//printf("zone.size=%d not connect!\n",zone.size());
+//					}
+//				}
+//
+//			}
+//		}
+//	}
+//
+//	for (int i = 0; i < FEELEN; i++) {
+//		if(this->neuronsdata[i]>0) {
+//			connect(i, rootnew);
+//			neuthreshold[rootnew]+=neuthreshold[i];
+//		}
+//	}
+//
+//	if(neurons[rootnew].fromsynapses.size()==0){
+//		unused.push_back(rootnew);
+//		return;
+//	}
+//
+//	//remember;
+//	int nu = -1;
+//	KNOWLEDGES::iterator iter = this->knowledgs.find(label);
+//	if (iter != this->knowledgs.end()) {
+//		nu =  iter->second;
+//	}
+//	else {
+//		nu = getneuron();
+//		this->knowledgs.insert(KNOWLEDGE(label, nu));
+//		this->knowidx.insert(pair<int,string>(nu,label));
+//	}
+////////////
+//
+//	neurons[rootnew].outneurons.push_back(nu);
+//	neurons[rootnew].layer=0;
+//	palliumlayers[0]->push_back(rootnew);
+//	if(actived.size()>0){
+//		neurons[rootact].outneurons.push_back(nu);
+//
+//		int n = getneuron();
+//		connect(rootnew, n);
+//		connect(rootact, n);
+//		neuthreshold[n]+=(neuthreshold[rootact] + neuthreshold[rootnew]);
+//		int ilay = neurons[rootact].layer >= neurons[rootnew].layer ? neurons[rootact].layer : neurons[rootnew].layer;
+//		ilay++;
+//		if(palliumlayers.size() < ilay + 1){
+//			vector<int>* lay=new vector<int>();
+//			palliumlayers.push_back(lay);
+//		}
+//		palliumlayers[ilay]->push_back(n);
+//		neurons[n].layer=ilay;
+//		neurons[nu].inneurons.push_back(n);
+//		neurons[n].outneurons.push_back(nu);
+//	}else{
+//		neurons[nu].inneurons.push_back(rootnew);
+//	}
+//}
 void opticnerve::remember(string label){
-	//curtimes++;
-	vector<int> actived;
-	int act=0,deact=0;
-	int rootact;
-	if(this->knowledgs.size()>0){
-	    vector<int> allmax;
-		this->calculate(allmax);
-		int know=allmax[0];
-
-		string lb = (knowidx.find(know))->second;
-		if (lb == label)
-			return;
-
-		int nuact =neurons[know].actor;
-		if(neuthreshold[nuact]==neuronsdata[nuact]){
-			printf("same img has another label [%s],lost it,write to log\n",label.data());
-			//return;
+	int rootnew = this->getneuron();
+	for(int x=255;x>1;x--){
+		for(int r=1; r<FEELWIDTH-1 ;++r)
+		for(int c=1; c<FEELWIDTH-1 ;++c)
+		{
+			uchar *data0 = &neuronsdata[(r-1)*FEELWIDTH];
+			uchar *data1 = &neuronsdata[(r)*FEELWIDTH];
+			uchar *data2 = &neuronsdata[(r+1)*FEELWIDTH];
+			int v=data0[c-1]+data1[c-1]+data2[c-1]+
+			   data0[c]+data1[c]+data2[c]+
+			   data0[c+1]+data1[c+1]+data2[c+1];
+			if(v==9*x){
+				connect(r*FEELWIDTH+c, rootnew);
+				neuthreshold[rootnew]+=neuthreshold[r*FEELWIDTH+c];
+			}
 		}
-		//神经元bu neng分裂,first proces one layer
-		//getactived(nuact,&actived);
-		if(actived.size()>0) {
-			//rootact = createbtree(actived);
-			rootact = createtree(actived);
-			neurons[rootact].outneurons.push_back(know);
-		}
-
-
 	}
 
 	//remember;
@@ -185,117 +332,11 @@ void opticnerve::remember(string label){
 		this->knowledgs.insert(KNOWLEDGE(label, nu));
 		this->knowidx.insert(pair<int,string>(nu,label));
 	}
-//////////
-/*
-	vector<int> tmp ;
-	for (int i = 0; i < FEELEN; i++) {
-		if(this->neuronsdata[i]>0){
-			tmp.push_back(i);}
-	}
-	int rootnew=0;
-	if(tmp.size()>0)
-	{
-		rootnew=createbtree(tmp);
-		neurons[rootnew].outneurons.push_back(nu);
-	}
 
-	if(actived.size()>0){
-		neurons[rootact].outneurons.push_back(nu);
-
-		int n = getneuron();
-		connect(rootnew, n);
-		connect(rootact, n);
-		neuthreshold[n]+=(neuthreshold[rootact] + neuthreshold[rootnew]);
-		int ilay = neurons[rootact].layer >= neurons[rootnew].layer ? neurons[rootact].layer : neurons[rootnew].layer;
-		ilay++;
-		if(palliumlayers.size() < ilay + 1){
-			vector<int>* lay=new vector<int>();
-			palliumlayers.push_back(lay);
-		}
-		palliumlayers[ilay]->push_back(n);
-		neurons[n].layer=ilay;
-		neurons[nu].inneurons.push_back(n);
-		neurons[n].outneurons.push_back(nu);
-	}else{
-		neurons[nu].inneurons.push_back(rootnew);
-	}
-*/
-////////////
-
-
-	int rootnew = this->getneuron();
-	for(int l=0;l<FEELLAYS;l++){
-		//connected neurons
-		for(int r=0;r<FEELWIDTH;r++){
-			for(int c=0;c<FEELWIDTH;c++){
-				if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+r*FEELWIDTH+c]>0) {
-
-					//way second lixing
-					vector<pair<int,int>> pts,zone;
-					pts.push_back(pair<int,int>(r,c));
-					while(pts.size()>0){
-						pair<int,int> pt=pts.back();
-						pts.pop_back();
-						zone.push_back(pt);
-						this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second]=0;
-						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+pt.first*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first,pt.second+1));
-						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second-1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second-1));
-						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second));
-						if(this->neuronsdata[l*FEELWIDTH*FEELWIDTH+(pt.first+1)*FEELWIDTH+pt.second+1]>0)pts.push_back(pair<int,int>(pt.first+1,pt.second+1));
-					}
-					if(zone.size()>5){
-						//get center
-						int minr=9999,maxr=0,minc=9999,maxc=0;
-						for(int idx=0;idx<zone.size();idx++){
-							if(minr>zone[idx].first)minr=zone[idx].first;
-							if(maxr<zone[idx].first)maxr=zone[idx].first;
-							if(minc>zone[idx].second)minc=zone[idx].second;
-							if(maxc<zone[idx].second)maxc=zone[idx].second;
-							//way first zhijue
-							int i=l*FEELWIDTH*FEELWIDTH+r*FEELWIDTH+c;
-							connect(i, rootnew);
-							neuthreshold[rootnew]+=1;
-						}
-						printf("lay:%d, size %d,rect:%d,%d  %d,%d\n",l,zone.size(),minr,minc,maxr,maxc);
-					}else{
-						//printf("zone.size=%d not connect!\n",zone.size());
-					}
-				}
-
-			}
-		}
-	}
-
-	for (int i = 0; i < FEELEN; i++) {
-		if(this->neuronsdata[i]>0) {
-			connect(i, rootnew);
-			neuthreshold[rootnew]+=neuthreshold[i];
-		}
-	}
 	neurons[rootnew].outneurons.push_back(nu);
 	neurons[rootnew].layer=0;
 	palliumlayers[0]->push_back(rootnew);
-	if(actived.size()>0){
-		neurons[rootact].outneurons.push_back(nu);
-
-		int n = getneuron();
-		connect(rootnew, n);
-		connect(rootact, n);
-		neuthreshold[n]+=(neuthreshold[rootact] + neuthreshold[rootnew]);
-		int ilay = neurons[rootact].layer >= neurons[rootnew].layer ? neurons[rootact].layer : neurons[rootnew].layer;
-		ilay++;
-		if(palliumlayers.size() < ilay + 1){
-			vector<int>* lay=new vector<int>();
-			palliumlayers.push_back(lay);
-		}
-		palliumlayers[ilay]->push_back(n);
-		neurons[n].layer=ilay;
-		neurons[nu].inneurons.push_back(n);
-		neurons[n].outneurons.push_back(nu);
-	}else{
-		neurons[nu].inneurons.push_back(rootnew);
-	}
-
+	neurons[nu].inneurons.push_back(rootnew);
 }
 
 int opticnerve::createbtree(vector<int> &tmp) {
@@ -424,6 +465,13 @@ void opticnerve::connect(int neufrom,int neuto) {
     neurons[neufrom].tosynapses.insert(neuto);
     neurons[neuto].fromsynapses.push_back(neufrom);
 }
+void opticnerve::connectvalue(int neufrom,int neuto,int value) {
+	//synapses.insert(SYNAPSE{neufrom,neuto});
+    neurons[neufrom].tosynapses.insert(neuto);
+    neurons[neuto].fromsynapses.push_back(neufrom);
+    neurons[neuto].fromthreshold.push_back(value);
+}
+
 void opticnerve::disconnect(int neufrom,int neuto) {
 	//SYNAPSE snp = SYNAPSE{neufrom,neuto};
 	//set<SYNAPSE>::iterator it=synapses.find(snp);
